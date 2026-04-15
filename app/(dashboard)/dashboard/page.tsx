@@ -1,0 +1,97 @@
+import { createClient } from "@/lib/supabase/server";
+import { KPICard } from "@/components/dashboard/kpi-card";
+import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { QuickActions } from "@/components/dashboard/quick-actions";
+import { FileText, FolderOpen, Clock, CalendarDays } from "lucide-react";
+
+const DashboardPage = async () => {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("despacho_id, nombre")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) return null;
+
+  const oneWeekAgo = new Date(
+    Date.now() - 7 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const [
+    { count: totalDocumentos },
+    { count: expedientesActivos },
+    { count: pendientesRevision },
+    { count: documentosSemana },
+    { data: recentDocs },
+  ] = await Promise.all([
+    supabase.from("documentos").select("*", { count: "exact", head: true }),
+    supabase
+      .from("expedientes")
+      .select("*", { count: "exact", head: true })
+      .eq("estado", "activo"),
+    supabase
+      .from("facturas")
+      .select("*", { count: "exact", head: true })
+      .eq("estado_validacion", "pendiente"),
+    supabase
+      .from("documentos")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", oneWeekAgo),
+    supabase
+      .from("documentos")
+      .select("id, nombre, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">
+          Bienvenido, {profile.nombre}
+        </h1>
+        <p className="text-muted-foreground">
+          Panel de eficiencia de tu despacho
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KPICard
+          title="Documentos procesados"
+          value={totalDocumentos ?? 0}
+          icon={FileText}
+        />
+        <KPICard
+          title="Expedientes activos"
+          value={expedientesActivos ?? 0}
+          icon={FolderOpen}
+        />
+        <KPICard
+          title="Pendientes de revisión"
+          value={pendientesRevision ?? 0}
+          icon={Clock}
+        />
+        <KPICard
+          title="Docs. esta semana"
+          value={documentosSemana ?? 0}
+          icon={CalendarDays}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RecentActivity documents={recentDocs ?? []} />
+        <QuickActions />
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;
