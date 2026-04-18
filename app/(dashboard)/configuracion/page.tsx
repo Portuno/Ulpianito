@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Despacho, IusLedger, IusWallet, Profile } from "@/lib/types/database";
 import {
   Card,
   CardContent,
@@ -8,15 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
-type ProfileRow = {
-  id: string;
-  despacho_id: string | null;
-  nombre: string | null;
-  apellido: string | null;
-  email: string | null;
-  rol: string | null;
-};
 
 const ConfiguracionPage = async () => {
   const supabase = await createClient();
@@ -33,11 +25,11 @@ const ConfiguracionPage = async () => {
     .eq("id", user.id)
     .single();
 
-  const profile = (profileData as ProfileRow | null) ?? null;
+  const profile = (profileData as Profile | null) ?? null;
 
-  let despacho: { nombre?: string | null; plan?: string | null } | null = null;
-  let wallet: { balance?: number | null } | null = null;
-  let ledger: Array<{ id: string; delta: number; reason: string | null }> = [];
+  let despachoData: Despacho | null = null;
+  let walletData: Pick<IusWallet, "balance"> | null = null;
+  let ledgerData: Array<Pick<IusLedger, "id" | "delta" | "reason">> = [];
 
   if (profile?.despacho_id) {
     const { data } = await supabase
@@ -45,11 +37,11 @@ const ConfiguracionPage = async () => {
       .select("*")
       .eq("id", profile.despacho_id)
       .single();
-    despacho = data;
+    despachoData = (data as Despacho | null) ?? null;
   }
 
   if (profile?.id) {
-    const [{ data: walletData }, { data: ledgerData }] = await Promise.all([
+    const [{ data: walletResult }, { data: ledgerResult }] = await Promise.all([
       supabase
         .from("ius_wallets")
         .select("balance")
@@ -62,9 +54,15 @@ const ConfiguracionPage = async () => {
         .order("created_at", { ascending: false })
         .limit(5),
     ]);
-    wallet = walletData;
-    ledger = (ledgerData as Array<{ id: string; delta: number; reason: string | null }>) ?? [];
+    walletData = (walletResult as Pick<IusWallet, "balance"> | null) ?? null;
+    ledgerData =
+      (ledgerResult as Array<Pick<IusLedger, "id" | "delta" | "reason">> | null) ?? [];
   }
+
+  const despachoNombre = despachoData?.nombre ?? "—";
+  const despachoPlan = despachoData?.plan ?? "free";
+  const walletBalance = walletData?.balance ?? 0;
+  const ledgerItems = ledgerData;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -109,14 +107,14 @@ const ConfiguracionPage = async () => {
           <div className="grid gap-1">
             <p className="text-sm font-medium">Nombre del despacho</p>
             <p className="text-sm text-muted-foreground">
-              {despacho?.nombre ?? "—"}
+              {despachoNombre}
             </p>
           </div>
           <Separator />
           <div className="grid gap-1">
             <p className="text-sm font-medium">Plan</p>
             <p className="text-sm text-muted-foreground">
-              {despacho?.plan ?? "free"}
+              {despachoPlan}
             </p>
           </div>
         </CardContent>
@@ -130,18 +128,18 @@ const ConfiguracionPage = async () => {
         <CardContent className="space-y-4">
           <div className="grid gap-1">
             <p className="text-sm font-medium">Saldo actual</p>
-            <p className="text-2xl font-bold tracking-tight">{wallet?.balance ?? 0} IUS</p>
+            <p className="text-2xl font-bold tracking-tight">{walletBalance} IUS</p>
           </div>
           <Separator />
           <div className="space-y-2">
             <p className="text-sm font-medium">Últimos movimientos</p>
-            {(ledger ?? []).map((row) => (
+            {ledgerItems.map((row) => (
               <div key={row.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
                 <span>{row.reason}</span>
                 <span className="font-medium">+{row.delta}</span>
               </div>
             ))}
-            {(ledger ?? []).length === 0 && (
+            {ledgerItems.length === 0 && (
               <p className="text-sm text-muted-foreground">Sin movimientos todavía.</p>
             )}
           </div>

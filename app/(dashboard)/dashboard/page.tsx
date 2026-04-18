@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { IusWallet, Profile } from "@/lib/types/database";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -14,11 +15,13 @@ const DashboardPage = async () => {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("despacho_id, nombre")
     .eq("id", user.id)
     .single();
+
+  const profile = (profileData as Pick<Profile, "despacho_id" | "nombre"> | null) ?? null;
 
   if (!profile) redirect("/configuracion");
 
@@ -66,11 +69,14 @@ const DashboardPage = async () => {
       .gte("created_at", oneWeekAgo),
   ]);
 
+  const profileNombre = profile.nombre;
+  const walletBalance = (wallet as Pick<IusWallet, "balance"> | null)?.balance ?? 0;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Bienvenido, {profile.nombre}
+          Bienvenido, {profileNombre}
         </h1>
         <p className="text-muted-foreground">
           Panel de eficiencia de tu despacho
@@ -101,7 +107,7 @@ const DashboardPage = async () => {
       </div>
 
       <div id="ius" className="grid gap-4 sm:grid-cols-2">
-        <KPICard title="Saldo IUS" value={wallet?.balance ?? 0} icon={Coins} />
+        <KPICard title="Saldo IUS" value={walletBalance} icon={Coins} />
         <KPICard
           title="Recompensas IUS (7 días)"
           value={iusThisWeek ?? 0}
