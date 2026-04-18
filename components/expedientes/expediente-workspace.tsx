@@ -103,7 +103,7 @@ export const ExpedienteWorkspace = ({
 
   return (
     <div className="space-y-6">
-      <header className="rounded-xl border bg-card/80 p-5 shadow-sm backdrop-blur-sm dark:bg-card/60">
+      <header className="rounded-2xl border bg-gradient-to-r from-background via-background to-muted/20 p-5 shadow-sm ring-1 ring-primary/10 backdrop-blur-sm dark:from-background dark:via-background dark:to-muted/30">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -136,28 +136,28 @@ export const ExpedienteWorkspace = ({
         </div>
       </header>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex h-auto min-h-9 w-full flex-wrap justify-start gap-1 bg-muted p-1">
-          <TabsTrigger value="resumen" className="text-xs sm:text-sm">
+      <Tabs value={tab} onValueChange={setTab} className="w-full flex-col">
+        <TabsList className="flex h-auto min-h-10 w-full flex-wrap justify-start gap-1 rounded-xl border bg-muted/70 p-1 shadow-inner">
+          <TabsTrigger value="resumen" className="h-8 rounded-lg px-3 text-xs sm:text-sm">
             Vista general
           </TabsTrigger>
-          <TabsTrigger value="documental" className="text-xs sm:text-sm">
+          <TabsTrigger value="documental" className="h-8 rounded-lg px-3 text-xs sm:text-sm">
             Documental
           </TabsTrigger>
-          <TabsTrigger value="sujetos" className="text-xs sm:text-sm">
+          <TabsTrigger value="sujetos" className="h-8 rounded-lg px-3 text-xs sm:text-sm">
             Sujetos
           </TabsTrigger>
-          <TabsTrigger value="patrimonial" className="text-xs sm:text-sm">
+          <TabsTrigger value="patrimonial" className="h-8 rounded-lg px-3 text-xs sm:text-sm">
             Patrimonial
           </TabsTrigger>
-          <TabsTrigger value="miscelaneo" className="text-xs sm:text-sm">
+          <TabsTrigger value="miscelaneo" className="h-8 rounded-lg px-3 text-xs sm:text-sm">
             Misceláneo
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="resumen" className="mt-6 space-y-8">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="flex flex-col overflow-hidden border-muted-foreground/15">
+        <TabsContent value="resumen" className="mt-6 w-full space-y-8">
+          <div className="grid w-full gap-4 md:grid-cols-2">
+            <Card className="flex min-h-64 flex-col overflow-hidden border-primary/15 bg-gradient-to-b from-background to-muted/20">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -207,7 +207,7 @@ export const ExpedienteWorkspace = ({
               </CardFooter>
             </Card>
 
-            <Card className="border-muted-foreground/15">
+            <Card className="min-h-64 border-primary/15 bg-gradient-to-b from-background to-muted/20">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -243,7 +243,7 @@ export const ExpedienteWorkspace = ({
               </CardFooter>
             </Card>
 
-            <Card className="border-muted-foreground/15">
+            <Card className="min-h-64 border-primary/15 bg-gradient-to-b from-background to-muted/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <PieChart
@@ -300,7 +300,7 @@ export const ExpedienteWorkspace = ({
               </CardFooter>
             </Card>
 
-            <Card className="border-muted-foreground/15">
+            <Card className="min-h-64 border-primary/15 bg-gradient-to-b from-background to-muted/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FolderKanban
@@ -342,19 +342,19 @@ export const ExpedienteWorkspace = ({
           <ExpedienteTimeline items={timelineItems} />
         </TabsContent>
 
-        <TabsContent value="documental" className="mt-6">
+        <TabsContent value="documental" className="mt-6 w-full">
           <DocumentalTab expedienteId={expedienteId} documentos={documentos} />
         </TabsContent>
 
-        <TabsContent value="sujetos" className="mt-6">
+        <TabsContent value="sujetos" className="mt-6 w-full">
           <SujetosTab expedienteId={expedienteId} sujetos={sujetos} />
         </TabsContent>
 
-        <TabsContent value="patrimonial" className="mt-6">
+        <TabsContent value="patrimonial" className="mt-6 w-full">
           <PatrimonialTab facturas={facturas} />
         </TabsContent>
 
-        <TabsContent value="miscelaneo" className="mt-6">
+        <TabsContent value="miscelaneo" className="mt-6 w-full">
           <MiscelaneoTab expediente={expediente} />
         </TabsContent>
       </Tabs>

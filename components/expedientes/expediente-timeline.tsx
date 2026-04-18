@@ -24,7 +24,7 @@ const kindStyles: Record<ExpedienteTimelineItem["kind"], string> = {
 
 export const ExpedienteTimeline = ({ items }: ExpedienteTimelineProps) => {
   return (
-    <Card>
+    <Card className="border-primary/15 bg-gradient-to-b from-background to-muted/20">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <CalendarClock
@@ -46,7 +46,7 @@ export const ExpedienteTimeline = ({ items }: ExpedienteTimelineProps) => {
             Aún no hay eventos para mostrar.
           </p>
         ) : (
-          <ol className="relative ms-2 border-s-2 border-muted ps-6">
+          <ol className="relative ms-2 border-s-2 border-primary/20 ps-6">
             {items.map((item, index) => (
               <li
                 key={item.id}
