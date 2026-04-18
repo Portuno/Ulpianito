@@ -63,7 +63,7 @@ const EstadoBadge = ({ estado }: { estado: string }) => {
     <Badge
       className={cn(
         isActivo &&
-          "border border-emerald-600/30 bg-emerald-600/12 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200",
+          "border-0 bg-emerald-100 text-emerald-700 shadow-sm dark:bg-emerald-500/15 dark:text-emerald-200",
       )}
       variant={isActivo ? "outline" : "secondary"}
     >
@@ -102,8 +102,8 @@ export const ExpedienteWorkspace = ({
   const [tab, setTab] = useState("resumen");
 
   return (
-    <div className="space-y-6">
-      <header className="rounded-2xl border bg-gradient-to-r from-background via-background to-muted/20 p-5 shadow-sm ring-1 ring-primary/10 backdrop-blur-sm dark:from-background dark:via-background dark:to-muted/30">
+    <div className="space-y-6 rounded-xl bg-slate-50 p-3 text-slate-900 md:p-4 dark:bg-background dark:text-foreground">
+      <header className="rounded-2xl border-0 bg-white p-5 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-sm dark:bg-card dark:ring-border">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -113,18 +113,29 @@ export const ExpedienteWorkspace = ({
               <EstadoBadge estado={expediente.estado} />
             </div>
             {expediente.descripcion?.trim() ? (
-              <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+              <p className="max-w-3xl text-sm leading-relaxed text-slate-500 dark:text-muted-foreground">
                 {expediente.descripcion}
               </p>
             ) : null}
           </div>
           <div className="flex flex-shrink-0 flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" asChild>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-slate-900 text-white hover:bg-slate-800"
+              asChild
+            >
               <Link href="/agentes" aria-label="Ir a flujos para generar escrito">
                 Generar Escrito
               </Link>
             </Button>
-            <Button type="button" variant="outline" size="sm" asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-slate-300 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-border"
+              asChild
+            >
               <Link
                 href="/validacion"
                 aria-label="Ir a validación de entidades HITL"
@@ -137,7 +148,7 @@ export const ExpedienteWorkspace = ({
       </header>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full flex-col">
-        <TabsList className="flex h-auto min-h-10 w-full flex-wrap justify-start gap-1 rounded-xl border bg-muted/70 p-1 shadow-inner">
+        <TabsList className="flex h-auto min-h-10 w-full flex-wrap justify-start gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-border dark:bg-muted/70">
           <TabsTrigger value="resumen" className="h-8 rounded-lg px-3 text-xs sm:text-sm">
             Vista general
           </TabsTrigger>
@@ -155,9 +166,10 @@ export const ExpedienteWorkspace = ({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="resumen" className="mt-6 w-full space-y-8">
-          <div className="grid w-full gap-4 md:grid-cols-2">
-            <Card className="flex min-h-64 flex-col overflow-hidden border-primary/15 bg-gradient-to-b from-background to-muted/20">
+        <TabsContent value="resumen" className="mt-6 w-full">
+          <div className="grid w-full gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
+            <div className="grid w-full gap-4 md:grid-cols-2">
+              <Card className="flex min-h-64 flex-col overflow-hidden rounded-xl border-0 bg-white shadow-sm ring-1 ring-slate-200/70 dark:bg-card dark:ring-border">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -171,7 +183,7 @@ export const ExpedienteWorkspace = ({
                     {documentalResumen.count} doc.
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground">
                   Carga y trazabilidad documental en el expediente.
                 </p>
               </CardHeader>
@@ -181,7 +193,7 @@ export const ExpedienteWorkspace = ({
                   variant="compact"
                 />
                 {documentalResumen.lastUploadAt && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground">
                     Última incorporación:{" "}
                     {new Date(documentalResumen.lastUploadAt).toLocaleString(
                       "es-ES",
@@ -193,21 +205,21 @@ export const ExpedienteWorkspace = ({
                   </p>
                 )}
               </CardContent>
-              <CardFooter className="border-t bg-muted/30 pt-3">
+              <CardFooter className="border-t border-slate-100 bg-white/80 pt-3 dark:border-border dark:bg-muted/30">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="w-full"
+                  className="w-full text-slate-900 hover:underline dark:text-foreground"
                   onClick={() => setTab("documental")}
                   aria-label="Abrir sección documental completa"
                 >
                   Ver tabla y gestión documental
                 </Button>
               </CardFooter>
-            </Card>
+              </Card>
 
-            <Card className="min-h-64 border-primary/15 bg-gradient-to-b from-background to-muted/20">
+              <Card className="min-h-64 rounded-xl border-0 bg-white shadow-sm ring-1 ring-slate-200/70 dark:bg-card dark:ring-border">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -218,7 +230,7 @@ export const ExpedienteWorkspace = ({
                     Sujetos
                   </CardTitle>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground">
                   Partes y representación relevante.
                 </p>
               </CardHeader>
@@ -230,20 +242,20 @@ export const ExpedienteWorkspace = ({
                   value={sujetosResumen.representante}
                 />
               </CardContent>
-              <CardFooter className="border-t bg-muted/30 pt-3">
+              <CardFooter className="border-t border-slate-100 bg-white/80 pt-3 dark:border-border dark:bg-muted/30">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="w-full"
+                  className="w-full text-slate-900 hover:underline dark:text-foreground"
                   onClick={() => setTab("sujetos")}
                 >
                   Gestionar sujetos
                 </Button>
               </CardFooter>
-            </Card>
+              </Card>
 
-            <Card className="min-h-64 border-primary/15 bg-gradient-to-b from-background to-muted/20">
+              <Card className="min-h-64 rounded-xl border-0 bg-white shadow-sm ring-1 ring-slate-200/70 dark:bg-card dark:ring-border">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <PieChart
@@ -252,7 +264,7 @@ export const ExpedienteWorkspace = ({
                   />
                   Patrimonial
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground">
                   {patrimonialResumen.source === "activos"
                     ? "Resumen desde bienes registrados."
                     : "Resumen desde facturas extraídas."}
@@ -287,20 +299,20 @@ export const ExpedienteWorkspace = ({
                   }
                 />
               </CardContent>
-              <CardFooter className="border-t bg-muted/30 pt-3">
+              <CardFooter className="border-t border-slate-100 bg-white/80 pt-3 dark:border-border dark:bg-muted/30">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="w-full"
+                  className="w-full text-slate-900 hover:underline dark:text-foreground"
                   onClick={() => setTab("patrimonial")}
                 >
                   Ver detalle patrimonial
                 </Button>
               </CardFooter>
-            </Card>
+              </Card>
 
-            <Card className="min-h-64 border-primary/15 bg-gradient-to-b from-background to-muted/20">
+              <Card className="min-h-64 rounded-xl border-0 bg-white shadow-sm ring-1 ring-slate-200/70 dark:bg-card dark:ring-border">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FolderKanban
@@ -309,7 +321,7 @@ export const ExpedienteWorkspace = ({
                   />
                   Misceláneo
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500 dark:text-muted-foreground">
                   Tipo de asunto y notas internas.
                 </p>
               </CardHeader>
@@ -320,26 +332,29 @@ export const ExpedienteWorkspace = ({
                   value={miscelaneoResumen.jurisdiccion}
                 />
                 {miscelaneoResumen.notasPreview && (
-                  <p className="line-clamp-3 rounded-md bg-muted/50 p-2 text-xs leading-relaxed text-muted-foreground">
+                  <p className="line-clamp-3 rounded-md bg-slate-50 p-2 text-xs leading-relaxed text-slate-500 dark:bg-muted/50 dark:text-muted-foreground">
                     {miscelaneoResumen.notasPreview}
                   </p>
                 )}
               </CardContent>
-              <CardFooter className="border-t bg-muted/30 pt-3">
+              <CardFooter className="border-t border-slate-100 bg-white/80 pt-3 dark:border-border dark:bg-muted/30">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="w-full"
+                  className="w-full text-slate-900 hover:underline dark:text-foreground"
                   onClick={() => setTab("miscelaneo")}
                 >
                   Ver ficha miscelánea
                 </Button>
               </CardFooter>
-            </Card>
-          </div>
+              </Card>
+            </div>
 
-          <ExpedienteTimeline items={timelineItems} />
+            <aside className="xl:sticky xl:top-6 xl:h-fit">
+              <ExpedienteTimeline items={timelineItems} title="Actividad reciente" compact />
+            </aside>
+          </div>
         </TabsContent>
 
         <TabsContent value="documental" className="mt-6 w-full">

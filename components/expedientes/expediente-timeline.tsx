@@ -5,37 +5,39 @@ import { CalendarClock } from "lucide-react";
 
 type ExpedienteTimelineProps = {
   items: ExpedienteTimelineItem[];
+  title?: string;
+  compact?: boolean;
 };
 
 const kindStyles: Record<ExpedienteTimelineItem["kind"], string> = {
-  plataforma:
-    "border-emerald-500/80 bg-emerald-500/10 dark:bg-emerald-500/15",
-  expediente:
-    "border-sky-500/80 bg-sky-500/10 dark:bg-sky-500/15",
-  documento:
-    "border-amber-500/80 bg-amber-500/10 dark:bg-amber-500/15",
-  factura:
-    "border-violet-500/80 bg-violet-500/10 dark:bg-violet-500/15",
-  evento:
-    "border-rose-500/80 bg-rose-500/10 dark:bg-rose-500/15",
-  hito:
-    "border-fuchsia-500/80 bg-fuchsia-500/10 dark:bg-fuchsia-500/15",
+  plataforma: "border-slate-400 bg-slate-200 dark:border-slate-500 dark:bg-slate-500/30",
+  expediente: "border-slate-400 bg-slate-200 dark:border-slate-500 dark:bg-slate-500/30",
+  documento: "border-slate-400 bg-slate-200 dark:border-slate-500 dark:bg-slate-500/30",
+  factura: "border-slate-400 bg-slate-200 dark:border-slate-500 dark:bg-slate-500/30",
+  evento: "border-slate-400 bg-slate-200 dark:border-slate-500 dark:bg-slate-500/30",
+  hito: "border-emerald-500 bg-emerald-500",
 };
 
-export const ExpedienteTimeline = ({ items }: ExpedienteTimelineProps) => {
+export const ExpedienteTimeline = ({
+  items,
+  title = "Línea de tiempo",
+  compact = false,
+}: ExpedienteTimelineProps) => {
+  const visibleItems = compact ? items.slice(0, 12) : items;
+
   return (
-    <Card className="border-primary/15 bg-gradient-to-b from-background to-muted/20">
+    <Card className="rounded-xl border-0 bg-white shadow-sm ring-1 ring-slate-200/70 dark:bg-card dark:ring-border">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <CalendarClock
-            className="h-4 w-4 text-muted-foreground"
+            className="h-4 w-4 text-slate-500 dark:text-muted-foreground"
             aria-hidden="true"
           />
           <CardTitle className="text-base font-semibold">
-            Línea de tiempo
+            {title}
           </CardTitle>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-slate-500 dark:text-muted-foreground">
           Datos del expediente, documentos, facturas y acciones en la plataforma,
           en orden cronológico.
         </p>
@@ -46,8 +48,8 @@ export const ExpedienteTimeline = ({ items }: ExpedienteTimelineProps) => {
             Aún no hay eventos para mostrar.
           </p>
         ) : (
-          <ol className="relative ms-2 border-s-2 border-primary/20 ps-6">
-            {items.map((item, index) => (
+          <ol className="relative ms-2 border-s-2 border-slate-200 ps-6 dark:border-slate-700">
+            {visibleItems.map((item, index) => (
               <li
                 key={item.id}
                 className={cn(
@@ -63,7 +65,7 @@ export const ExpedienteTimeline = ({ items }: ExpedienteTimelineProps) => {
                   aria-hidden="true"
                 />
                 <time
-                  className="text-xs font-medium text-muted-foreground"
+                  className="text-xs font-medium text-slate-500 dark:text-muted-foreground"
                   dateTime={item.at}
                 >
                   {new Date(item.at).toLocaleString("es-ES", {
@@ -78,7 +80,9 @@ export const ExpedienteTimeline = ({ items }: ExpedienteTimelineProps) => {
                   {item.label}
                 </p>
                 {item.detail && (
-                  <p className="text-xs text-muted-foreground">{item.detail}</p>
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground">
+                    {item.detail}
+                  </p>
                 )}
               </li>
             ))}
