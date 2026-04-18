@@ -3,10 +3,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/lib/types/database";
 
 export type ExpedienteState = {
   error: string | null;
 };
+
+type ProfileMin = Pick<Database["public"]["Tables"]["profiles"]["Row"], "despacho_id">;
+type ExpedienteInsert = Database["public"]["Tables"]["expedientes"]["Insert"];
+type ExpedienteUpdate = Database["public"]["Tables"]["expedientes"]["Update"];
+type SujetoInsert = Database["public"]["Tables"]["sujetos"]["Insert"];
+type DocumentoInsert = Database["public"]["Tables"]["documentos"]["Insert"];
 
 export const createExpediente = async (
   _prevState: ExpedienteState,
@@ -19,11 +26,12 @@ export const createExpediente = async (
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: profile } = await supabase
-    .from("profiles")
+  const { data: profileData } = await (supabase.from("profiles") as any)
     .select("despacho_id")
     .eq("id", user.id)
     .single();
+
+  const profile = (profileData as ProfileMin | null) ?? null;
 
   if (!profile) return { error: "Perfil no encontrado" };
 
@@ -31,25 +39,25 @@ export const createExpediente = async (
   const numero_expediente = formData.get("numero_expediente") as string;
   const tipo = formData.get("tipo") as string;
   const descripcion = (formData.get("descripcion") as string) || null;
+  const expedienteId = crypto.randomUUID();
 
-  const { data, error } = await supabase
-    .from("expedientes")
-    .insert({
-      despacho_id: profile.despacho_id,
-      created_by: user.id,
-      titulo,
-      numero_expediente,
-      tipo,
-      descripcion,
-    })
-    .select()
-    .single();
+  const expedienteInsert: ExpedienteInsert = {
+    id: expedienteId,
+    despacho_id: profile.despacho_id,
+    created_by: user.id,
+    titulo,
+    numero_expediente,
+    tipo,
+    descripcion,
+  };
+
+  const { error } = await (supabase.from("expedientes") as any).insert(expedienteInsert);
 
   if (error) {
     return { error: error.message };
   }
 
-  redirect(`/expedientes/${data.id}`);
+  redirect(`/expedientes/${expedienteId}`);
 };
 
 export const updateExpedienteNotes = async (
@@ -58,9 +66,9 @@ export const updateExpedienteNotes = async (
 ): Promise<{ error: string | null }> => {
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("expedientes")
-    .update({ notas })
+  const expedientePatch: ExpedienteUpdate = { notas };
+  const { error } = await (supabase.from("expedientes") as any)
+    .update(expedientePatch)
     .eq("id", expedienteId);
 
   if (error) return { error: error.message };
@@ -81,9 +89,8 @@ export const createSujeto = async (
   const dni = (formData.get("dni") as string) || null;
   const contacto = (formData.get("contacto") as string) || null;
 
-  const { error } = await supabase
-    .from("sujetos")
-    .insert({ expediente_id, nombre, rol_procesal, dni, contacto });
+  const sujetoInsert: SujetoInsert = { expediente_id, nombre, rol_procesal, dni, contacto };
+  const { error } = await (supabase.from("sujetos") as any).insert(sujetoInsert);
 
   if (error) return { error: error.message };
 
@@ -110,11 +117,12 @@ export const uploadDocument = async (
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: profile } = await supabase
-    .from("profiles")
+  const { data: profileData } = await (supabase.from("profiles") as any)
     .select("despacho_id")
     .eq("id", user.id)
     .single();
+
+  const profile = (profileData as ProfileMin | null) ?? null;
 
   if (!profile) return { error: "Perfil no encontrado" };
 
@@ -135,14 +143,17 @@ export const uploadDocument = async (
 
   if (uploadError) return { error: uploadError.message };
 
-  const { error: dbError } = await supabase.from("documentos").insert({
+  const documentoInsert: DocumentoInsert = {
     expediente_id: expedienteId,
     uploaded_by: user.id,
     nombre: file.name,
     storage_path: storagePath,
     mime_type: file.type || "application/octet-stream",
     size_bytes: file.size,
-  });
+  };
+  const { error: dbError } = await (supabase.from("documentos") as any).insert(
+    documentoInsert
+  );
 
   if (dbError) return { error: dbError.message };
 

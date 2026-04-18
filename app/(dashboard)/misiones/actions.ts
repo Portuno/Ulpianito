@@ -4,8 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getServerProfile } from "@/lib/auth/profile";
 import { invokeEdgeFunction } from "@/lib/ius/edge-invoke";
+import type { Database } from "@/lib/types/database";
 
 export type ActionState = { error: string | null; ok?: boolean };
+type MissionRunInsert = Database["public"]["Tables"]["mission_runs"]["Insert"];
+type MissionRunUpdate = Database["public"]["Tables"]["mission_runs"]["Update"];
+type HitlReviewInsert = Database["public"]["Tables"]["hitl_reviews"]["Insert"];
+type TrainingReviewInsert = Database["public"]["Tables"]["training_reviews"]["Insert"];
+type TrainingReviewUpdate = Database["public"]["Tables"]["training_reviews"]["Update"];
+type ClaimMissionStepRewardArgs =
+  Database["public"]["Functions"]["claim_mission_step_reward"]["Args"];
 
 export const createMissionRun = async (
   missionId: string,
@@ -18,9 +26,7 @@ export const createMissionRun = async (
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("mission_runs")
-    .insert({
+  const runInsert: MissionRunInsert = {
       mission_id: missionId,
       profile_id: userId,
       despacho_id: profile.despacho_id,
@@ -28,7 +34,9 @@ export const createMissionRun = async (
       documento_id: documentoId ?? null,
       status: "draft",
       current_step: "extract",
-    })
+    };
+  const { data, error } = await (supabase.from("mission_runs") as any)
+    .insert(runInsert)
     .select("id")
     .single();
 
@@ -52,10 +60,14 @@ export const runExtractionAndValidation = async (
 
   await invokeEdgeFunction("extractor-ius-basic", { run_id: runId });
 
-  const { error: claimErr } = await supabase.rpc("claim_mission_step_reward", {
+  const claimPayload: ClaimMissionStepRewardArgs = {
     p_run_id: runId,
     p_action_key: "mission_step_extract",
-  });
+  };
+  const { error: claimErr } = await (supabase.rpc as any)(
+    "claim_mission_step_reward",
+    claimPayload
+  );
   if (claimErr) {
     return { error: claimErr.message };
   }
@@ -92,7 +104,7 @@ export const submitHitlReview = async (
     Company: payload.companyLabel,
   };
 
-  const { error: hitlErr } = await supabase.from("hitl_reviews").insert({
+  const hitlInsert: HitlReviewInsert = {
     run_id: runId,
     reviewed_by: userId,
     action: "approve",
@@ -100,7 +112,10 @@ export const submitHitlReview = async (
     risk_acknowledged: payload.riskAcknowledged,
     economic_alert_notes: payload.economicAlertNotes || null,
     notes: payload.notes || null,
-  });
+  };
+  const { error: hitlErr } = await (supabase.from("hitl_reviews") as any).insert(
+    hitlInsert
+  );
 
   if (hitlErr) {
     return { error: hitlErr.message };
@@ -122,23 +137,27 @@ export const submitHitlReview = async (
     prior_validator: run?.validator_output ?? {},
   };
 
-  const { error: updErr } = await supabase
-    .from("mission_runs")
-    .update({
+  const runPatch: MissionRunUpdate = {
       context_artifact: contextArtifact,
       status: "running",
       current_step: "plan_write",
-    })
+    };
+  const { error: updErr } = await (supabase.from("mission_runs") as any)
+    .update(runPatch)
     .eq("id", runId);
 
   if (updErr) {
     return { error: updErr.message };
   }
 
-  const { error: claimErr } = await supabase.rpc("claim_mission_step_reward", {
+  const claimPayload: ClaimMissionStepRewardArgs = {
     p_run_id: runId,
     p_action_key: "mission_step_hitl",
-  });
+  };
+  const { error: claimErr } = await (supabase.rpc as any)(
+    "claim_mission_step_reward",
+    claimPayload
+  );
   if (claimErr) {
     return { error: claimErr.message };
   }
@@ -169,10 +188,14 @@ export const runWriterStep = async (runId: string): Promise<ActionState> => {
 
   await invokeEdgeFunction("writer-ius-document", { run_id: runId });
 
-  const { error: claimErr } = await supabase.rpc("claim_mission_step_reward", {
+  const claimPayload: ClaimMissionStepRewardArgs = {
     p_run_id: runId,
     p_action_key: "mission_step_plan_write",
-  });
+  };
+  const { error: claimErr } = await (supabase.rpc as any)(
+    "claim_mission_step_reward",
+    claimPayload
+  );
   if (claimErr) {
     return { error: claimErr.message };
   }
@@ -206,25 +229,28 @@ export const submitTrainingReview = async (
     .maybeSingle();
 
   if (existing?.id) {
-    const { error: upd } = await supabase
-      .from("training_reviews")
-      .update({
-        understood_sublicense_trap: payload.understoodSublicenseTrap,
-        comments: payload.comments,
-        status: payload.status,
-      })
+    const trainingPatch: TrainingReviewUpdate = {
+      understood_sublicense_trap: payload.understoodSublicenseTrap,
+      comments: payload.comments,
+      status: payload.status,
+    };
+    const { error: upd } = await (supabase.from("training_reviews") as any)
+      .update(trainingPatch)
       .eq("id", existing.id);
     if (upd) {
       return { error: upd.message };
     }
   } else {
-    const { error: ins } = await supabase.from("training_reviews").insert({
+    const trainingInsert: TrainingReviewInsert = {
       run_id: runId,
       reviewer_id: userId,
       understood_sublicense_trap: payload.understoodSublicenseTrap,
       comments: payload.comments,
       status: payload.status,
-    });
+    };
+    const { error: ins } = await (supabase.from("training_reviews") as any).insert(
+      trainingInsert
+    );
     if (ins) {
       return { error: ins.message };
     }
@@ -233,12 +259,12 @@ export const submitTrainingReview = async (
   const nextStatus =
     payload.status === "approved" ? "training_done" : "training_pending";
 
-  const { error: runErr } = await supabase
-    .from("mission_runs")
-    .update({
+  const runStatusPatch: MissionRunUpdate = {
       status: nextStatus,
       current_step: payload.status === "approved" ? "done" : "training_review",
-    })
+    };
+  const { error: runErr } = await (supabase.from("mission_runs") as any)
+    .update(runStatusPatch)
     .eq("id", runId);
 
   if (runErr) {
@@ -246,12 +272,13 @@ export const submitTrainingReview = async (
   }
 
   if (payload.status === "approved") {
-    const { error: claimErr } = await supabase.rpc(
+    const claimPayload: ClaimMissionStepRewardArgs = {
+      p_run_id: runId,
+      p_action_key: "mission_training_approved",
+    };
+    const { error: claimErr } = await (supabase.rpc as any)(
       "claim_mission_step_reward",
-      {
-        p_run_id: runId,
-        p_action_key: "mission_training_approved",
-      }
+      claimPayload
     );
     if (claimErr) {
       return { error: claimErr.message };

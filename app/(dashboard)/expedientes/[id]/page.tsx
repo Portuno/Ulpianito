@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Expediente } from "@/lib/types/database";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { DocumentalTab } from "@/components/expedientes/documental-tab";
@@ -15,11 +16,13 @@ const ExpedienteDetailPage = async ({ params }: Props) => {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: expediente } = await supabase
+  const { data: expedienteData } = await supabase
     .from("expedientes")
     .select("*")
     .eq("id", id)
     .single();
+
+  const expediente = (expedienteData as Expediente | null) ?? null;
 
   if (!expediente) notFound();
 
