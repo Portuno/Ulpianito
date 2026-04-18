@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { IusWallet, Profile } from "@/lib/types/database";
+import type { IusWallet } from "@/lib/types/database";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
@@ -14,16 +14,6 @@ const DashboardPage = async () => {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
-
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("despacho_id, nombre")
-    .eq("id", user.id)
-    .single();
-
-  const profile = (profileData as Pick<Profile, "despacho_id" | "nombre"> | null) ?? null;
-
-  if (!profile) redirect("/configuracion");
 
   const oneWeekAgo = new Date(
     Date.now() - 7 * 24 * 60 * 60 * 1000
@@ -69,20 +59,10 @@ const DashboardPage = async () => {
       .gte("created_at", oneWeekAgo),
   ]);
 
-  const profileNombre = profile.nombre;
   const walletBalance = (wallet as Pick<IusWallet, "balance"> | null)?.balance ?? 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Bienvenido, {profileNombre}
-        </h1>
-        <p className="text-muted-foreground">
-          Panel de eficiencia de tu despacho
-        </p>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Documentos procesados"

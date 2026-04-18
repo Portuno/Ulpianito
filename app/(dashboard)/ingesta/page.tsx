@@ -12,13 +12,6 @@ import { UploadCloud, FolderKanban, FileText } from "lucide-react";
 const IngestaPage = () => {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Ingesta de Datos</h1>
-        <p className="text-muted-foreground">
-          Centralizá expedientes y documentos para alimentar los flujos de IA.
-        </p>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="space-y-2">

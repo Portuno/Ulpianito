@@ -14,13 +14,7 @@ const ExpedientesPage = async () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Expedientes</h1>
-          <p className="text-muted-foreground">
-            Gestiona tus expedientes y casos
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Button asChild>
           <Link href="/expedientes/nuevo">
             <FolderPlus className="mr-2 h-4 w-4" aria-hidden="true" />
