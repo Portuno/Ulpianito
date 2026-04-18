@@ -7,6 +7,24 @@ import Link from "next/link";
 const AdminRevisionesPage = async () => {
   const { profile } = await requireAdminProfile();
 
+  if (!profile?.despacho_id) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Revisiones de entrenamiento</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Pendientes (ADMIN)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              No se encontro un despacho asociado a tu perfil.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const supabase = await createClient();
   const { data: runs } = await supabase
     .from("mission_runs")
