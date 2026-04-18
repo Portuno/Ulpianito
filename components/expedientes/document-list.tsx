@@ -32,6 +32,26 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const tipoEtiqueta = (doc: Documento) => {
+  const t = doc.tipo_documento?.trim();
+  if (t) return t;
+  if (doc.mime_type === "application/pdf") return "PDF";
+  if (doc.mime_type.startsWith("image/")) return "Imagen";
+  if (
+    doc.mime_type.includes("wordprocessingml") ||
+    doc.mime_type.includes("msword")
+  ) {
+    return "Word";
+  }
+  return doc.mime_type || "—";
+};
+
+const estadoIa = (doc: Documento) => {
+  if (doc.validado_at) return "Validado";
+  if (doc.origen === "ia") return "Pendiente de revisión";
+  return "Sin validar IA";
+};
+
 export const DocumentList = ({
   expedienteId,
   documentos,
@@ -67,8 +87,10 @@ export const DocumentList = ({
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Tamaño</TableHead>
               <TableHead>Fecha</TableHead>
+              <TableHead>Validación IA</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -89,11 +111,15 @@ export const DocumentList = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
+                    {tipoEtiqueta(doc)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {formatFileSize(doc.size_bytes)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(doc.created_at).toLocaleDateString("es-ES")}
                   </TableCell>
+                  <TableCell className="text-sm">{estadoIa(doc)}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"

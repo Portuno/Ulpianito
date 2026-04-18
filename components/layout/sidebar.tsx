@@ -58,6 +58,8 @@ const lowerGroup: NavGroup = {
   ],
 };
 
+const expedienteDetailPattern = /^\/expedientes\/[^/]+$/;
+
 const NavGroupSection = ({
   group,
   pathname,
@@ -74,6 +76,8 @@ const NavGroupSection = ({
     {group.items.map((item) => {
       const isActive =
         pathname === item.href || pathname.startsWith(item.href + "/");
+      const isExpedientesNav = item.href === "/expedientes";
+      const isInsideExpediente = expedienteDetailPattern.test(pathname);
 
       return (
         <Link
@@ -81,10 +85,14 @@ const NavGroupSection = ({
           href={item.href}
           onClick={onNavigate}
           className={cn(
-            "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+            "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
             isActive
               ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            isActive &&
+              isExpedientesNav &&
+              isInsideExpediente &&
+              "ring-2 ring-primary-foreground/35 ring-offset-2 ring-offset-background",
           )}
           aria-current={isActive ? "page" : undefined}
           tabIndex={0}
