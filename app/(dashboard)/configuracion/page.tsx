@@ -9,6 +9,15 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+type ProfileRow = {
+  id: string;
+  despacho_id: string | null;
+  nombre: string | null;
+  apellido: string | null;
+  email: string | null;
+  rol: string | null;
+};
+
 const ConfiguracionPage = async () => {
   const supabase = await createClient();
 
@@ -18,35 +27,44 @@ const ConfiguracionPage = async () => {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
-  const { data: despacho } = profile
-    ? await supabase
-        .from("despachos")
-        .select("*")
-        .eq("id", profile.despacho_id)
-        .single()
-    : { data: null };
+  const profile = (profileData as ProfileRow | null) ?? null;
 
-  const [{ data: wallet }, { data: ledger }] = profile
-    ? await Promise.all([
-        supabase
-          .from("ius_wallets")
-          .select("balance")
-          .eq("profile_id", profile.id)
-          .single(),
-        supabase
-          .from("ius_ledger")
-          .select("id, delta, reason, created_at")
-          .eq("profile_id", profile.id)
-          .order("created_at", { ascending: false })
-          .limit(5),
-      ])
-    : [{ data: null }, { data: [] }];
+  let despacho: { nombre?: string | null; plan?: string | null } | null = null;
+  let wallet: { balance?: number | null } | null = null;
+  let ledger: Array<{ id: string; delta: number; reason: string | null }> = [];
+
+  if (profile?.despacho_id) {
+    const { data } = await supabase
+      .from("despachos")
+      .select("*")
+      .eq("id", profile.despacho_id)
+      .single();
+    despacho = data;
+  }
+
+  if (profile?.id) {
+    const [{ data: walletData }, { data: ledgerData }] = await Promise.all([
+      supabase
+        .from("ius_wallets")
+        .select("balance")
+        .eq("profile_id", profile.id)
+        .single(),
+      supabase
+        .from("ius_ledger")
+        .select("id, delta, reason, created_at")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+    ]);
+    wallet = walletData;
+    ledger = (ledgerData as Array<{ id: string; delta: number; reason: string | null }>) ?? [];
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
