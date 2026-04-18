@@ -31,6 +31,22 @@ const ConfiguracionPage = async () => {
         .single()
     : { data: null };
 
+  const [{ data: wallet }, { data: ledger }] = profile
+    ? await Promise.all([
+        supabase
+          .from("ius_wallets")
+          .select("balance")
+          .eq("profile_id", profile.id)
+          .single(),
+        supabase
+          .from("ius_ledger")
+          .select("id, delta, reason, created_at")
+          .eq("profile_id", profile.id)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ])
+    : [{ data: null }, { data: [] }];
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
@@ -83,6 +99,32 @@ const ConfiguracionPage = async () => {
             <p className="text-sm text-muted-foreground">
               {despacho?.plan ?? "free"}
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Economía IUS</CardTitle>
+          <CardDescription>Progreso gamificado personal</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-1">
+            <p className="text-sm font-medium">Saldo actual</p>
+            <p className="text-2xl font-bold tracking-tight">{wallet?.balance ?? 0} IUS</p>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Últimos movimientos</p>
+            {(ledger ?? []).map((row) => (
+              <div key={row.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                <span>{row.reason}</span>
+                <span className="font-medium">+{row.delta}</span>
+              </div>
+            ))}
+            {(ledger ?? []).length === 0 && (
+              <p className="text-sm text-muted-foreground">Sin movimientos todavía.</p>
+            )}
           </div>
         </CardContent>
       </Card>

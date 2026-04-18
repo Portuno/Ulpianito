@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { FileText, FolderOpen, Clock, CalendarDays } from "lucide-react";
+import { FileText, FolderOpen, Clock, CalendarDays, Coins } from "lucide-react";
 
 const DashboardPage = async () => {
   const supabase = await createClient();
@@ -31,25 +31,38 @@ const DashboardPage = async () => {
     { count: pendientesRevision },
     { count: documentosSemana },
     { data: recentDocs },
+    { data: wallet },
+    { count: iusThisWeek },
   ] = await Promise.all([
-    supabase.from("documentos").select("*", { count: "exact", head: true }),
+    supabase.from("documentos").select("*", { count: "planned", head: true }),
     supabase
       .from("expedientes")
-      .select("*", { count: "exact", head: true })
+      .select("*", { count: "planned", head: true })
       .eq("estado", "activo"),
     supabase
       .from("facturas")
-      .select("*", { count: "exact", head: true })
+      .select("*", { count: "planned", head: true })
       .eq("estado_validacion", "pendiente"),
     supabase
       .from("documentos")
-      .select("*", { count: "exact", head: true })
+      .select("*", { count: "planned", head: true })
       .gte("created_at", oneWeekAgo),
     supabase
       .from("documentos")
       .select("id, nombre, created_at")
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("ius_wallets")
+      .select("balance")
+      .eq("profile_id", user.id)
+      .single(),
+    supabase
+      .from("ius_ledger")
+      .select("*", { count: "planned", head: true })
+      .eq("profile_id", user.id)
+      .gt("delta", 0)
+      .gte("created_at", oneWeekAgo),
   ]);
 
   return (
@@ -83,6 +96,15 @@ const DashboardPage = async () => {
           title="Docs. esta semana"
           value={documentosSemana ?? 0}
           icon={CalendarDays}
+        />
+      </div>
+
+      <div id="ius" className="grid gap-4 sm:grid-cols-2">
+        <KPICard title="Saldo IUS" value={wallet?.balance ?? 0} icon={Coins} />
+        <KPICard
+          title="Recompensas IUS (7 días)"
+          value={iusThisWeek ?? 0}
+          icon={Coins}
         />
       </div>
 
