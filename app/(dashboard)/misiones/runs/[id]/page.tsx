@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getServerProfile } from "@/lib/auth/profile";
 import { MissionRunWizard } from "@/components/missions/mission-run-wizard";
@@ -11,7 +11,7 @@ const MissionRunPage = async ({ params }: Props) => {
   const { id } = await params;
   const supabase = await createClient();
   const { profile, isAdmin } = await getServerProfile();
-  if (!profile) return null;
+  if (!profile) redirect("/login");
 
   const { data: run } = await supabase
     .from("mission_runs")

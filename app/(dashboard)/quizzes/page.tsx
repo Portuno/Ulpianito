@@ -11,7 +11,7 @@ const QuizzesPage = async () => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) redirect("/login");
 
   const { data: quizzes } = await supabase
     .from("quizzes")

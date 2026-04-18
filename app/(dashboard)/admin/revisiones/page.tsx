@@ -4,6 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+type MissionRunReview = {
+  id: string;
+  status: string;
+  current_step: number;
+  missions: { title?: string } | null;
+  profiles: { nombre?: string | null; apellido?: string | null } | null;
+};
+
 const AdminRevisionesPage = async () => {
   const { profile } = await requireAdminProfile();
 
@@ -26,12 +34,13 @@ const AdminRevisionesPage = async () => {
   }
 
   const supabase = await createClient();
-  const { data: runs } = await supabase
+  const { data: runsData } = await supabase
     .from("mission_runs")
     .select("id, status, current_step, created_at, missions(title), profiles(nombre, apellido)")
     .eq("despacho_id", profile.despacho_id)
     .eq("status", "training_pending")
     .order("created_at", { ascending: false });
+  const runs: MissionRunReview[] = (runsData ?? []) as MissionRunReview[];
 
   return (
     <div className="space-y-6">

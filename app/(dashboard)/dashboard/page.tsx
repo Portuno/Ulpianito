@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
@@ -11,7 +12,7 @@ const DashboardPage = async () => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -19,7 +20,7 @@ const DashboardPage = async () => {
     .eq("id", user.id)
     .single();
 
-  if (!profile) return null;
+  if (!profile) redirect("/configuracion");
 
   const oneWeekAgo = new Date(
     Date.now() - 7 * 24 * 60 * 60 * 1000

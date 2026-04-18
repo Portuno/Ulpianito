@@ -27,7 +27,7 @@ const MisionesPage = async () => {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return null;
+    redirect("/login");
   }
 
   const { data: missions } = await supabase
