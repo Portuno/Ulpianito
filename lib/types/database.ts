@@ -7,6 +7,14 @@ export type AiSummary = {
   modelo?: string;
 };
 
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -740,6 +748,7 @@ export type Database = {
         };
       };
     };
+    Views: Record<string, never>;
     Functions: {
       claim_quiz_pass_reward: {
         Args: { p_attempt_id: string };
@@ -754,6 +763,24 @@ export type Database = {
         Returns: boolean;
       };
     };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};
+
+type WithRelationships<T extends { Row: unknown; Insert: unknown; Update: unknown }> = T & {
+  Relationships: [];
+};
+
+type TablesWithRelationships = {
+  [K in keyof Database["public"]["Tables"]]: WithRelationships<
+    Database["public"]["Tables"][K]
+  >;
+};
+
+export type SupabaseDatabase = Omit<Database, "public"> & {
+  public: Omit<Database["public"], "Tables"> & {
+    Tables: TablesWithRelationships;
   };
 };
 

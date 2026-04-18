@@ -12,6 +12,14 @@ type MissionRunUpdate = Database["public"]["Tables"]["mission_runs"]["Update"];
 type HitlReviewInsert = Database["public"]["Tables"]["hitl_reviews"]["Insert"];
 type TrainingReviewInsert = Database["public"]["Tables"]["training_reviews"]["Insert"];
 type TrainingReviewUpdate = Database["public"]["Tables"]["training_reviews"]["Update"];
+type MissionRunContextFields = Pick<
+  Database["public"]["Tables"]["mission_runs"]["Row"],
+  "extractor_output" | "validator_output"
+>;
+type TrainingReviewIdRow = Pick<
+  Database["public"]["Tables"]["training_reviews"]["Row"],
+  "id"
+>;
 type ClaimMissionStepRewardArgs =
   Database["public"]["Functions"]["claim_mission_step_reward"]["Args"];
 
@@ -35,7 +43,8 @@ export const createMissionRun = async (
       status: "draft",
       current_step: "extract",
     };
-  const { data, error } = await (supabase.from("mission_runs") as any)
+  const { data, error } = await supabase
+    .from("mission_runs")
     .insert(runInsert)
     .select("id")
     .single();
@@ -64,7 +73,7 @@ export const runExtractionAndValidation = async (
     p_run_id: runId,
     p_action_key: "mission_step_extract",
   };
-  const { error: claimErr } = await (supabase.rpc as any)(
+  const { error: claimErr } = await supabase.rpc(
     "claim_mission_step_reward",
     claimPayload
   );
@@ -113,19 +122,18 @@ export const submitHitlReview = async (
     economic_alert_notes: payload.economicAlertNotes || null,
     notes: payload.notes || null,
   };
-  const { error: hitlErr } = await (supabase.from("hitl_reviews") as any).insert(
-    hitlInsert
-  );
+  const { error: hitlErr } = await supabase.from("hitl_reviews").insert(hitlInsert);
 
   if (hitlErr) {
     return { error: hitlErr.message };
   }
 
-  const { data: run } = await supabase
+  const { data: runData } = await supabase
     .from("mission_runs")
     .select("extractor_output, validator_output")
     .eq("id", runId)
     .single();
+  const run = (runData as MissionRunContextFields | null) ?? null;
 
   const contextArtifact = {
     parties: [
@@ -142,7 +150,8 @@ export const submitHitlReview = async (
       status: "running",
       current_step: "plan_write",
     };
-  const { error: updErr } = await (supabase.from("mission_runs") as any)
+  const { error: updErr } = await supabase
+    .from("mission_runs")
     .update(runPatch)
     .eq("id", runId);
 
@@ -154,7 +163,7 @@ export const submitHitlReview = async (
     p_run_id: runId,
     p_action_key: "mission_step_hitl",
   };
-  const { error: claimErr } = await (supabase.rpc as any)(
+  const { error: claimErr } = await supabase.rpc(
     "claim_mission_step_reward",
     claimPayload
   );
@@ -192,7 +201,7 @@ export const runWriterStep = async (runId: string): Promise<ActionState> => {
     p_run_id: runId,
     p_action_key: "mission_step_plan_write",
   };
-  const { error: claimErr } = await (supabase.rpc as any)(
+  const { error: claimErr } = await supabase.rpc(
     "claim_mission_step_reward",
     claimPayload
   );
@@ -222,11 +231,12 @@ export const submitTrainingReview = async (
 
   const supabase = await createClient();
 
-  const { data: existing } = await supabase
+  const { data: existingData } = await supabase
     .from("training_reviews")
     .select("id")
     .eq("run_id", runId)
     .maybeSingle();
+  const existing = (existingData as TrainingReviewIdRow | null) ?? null;
 
   if (existing?.id) {
     const trainingPatch: TrainingReviewUpdate = {
@@ -234,7 +244,8 @@ export const submitTrainingReview = async (
       comments: payload.comments,
       status: payload.status,
     };
-    const { error: upd } = await (supabase.from("training_reviews") as any)
+    const { error: upd } = await supabase
+      .from("training_reviews")
       .update(trainingPatch)
       .eq("id", existing.id);
     if (upd) {
@@ -248,9 +259,9 @@ export const submitTrainingReview = async (
       comments: payload.comments,
       status: payload.status,
     };
-    const { error: ins } = await (supabase.from("training_reviews") as any).insert(
-      trainingInsert
-    );
+    const { error: ins } = await supabase
+      .from("training_reviews")
+      .insert(trainingInsert);
     if (ins) {
       return { error: ins.message };
     }
@@ -263,7 +274,8 @@ export const submitTrainingReview = async (
       status: nextStatus,
       current_step: payload.status === "approved" ? "done" : "training_review",
     };
-  const { error: runErr } = await (supabase.from("mission_runs") as any)
+  const { error: runErr } = await supabase
+    .from("mission_runs")
     .update(runStatusPatch)
     .eq("id", runId);
 
@@ -276,7 +288,7 @@ export const submitTrainingReview = async (
       p_run_id: runId,
       p_action_key: "mission_training_approved",
     };
-    const { error: claimErr } = await (supabase.rpc as any)(
+    const { error: claimErr } = await supabase.rpc(
       "claim_mission_step_reward",
       claimPayload
     );

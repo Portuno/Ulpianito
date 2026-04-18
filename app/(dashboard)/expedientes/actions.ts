@@ -26,7 +26,8 @@ export const createExpediente = async (
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: profileData } = await (supabase.from("profiles") as any)
+  const { data: profileData } = await supabase
+    .from("profiles")
     .select("despacho_id")
     .eq("id", user.id)
     .single();
@@ -51,7 +52,7 @@ export const createExpediente = async (
     descripcion,
   };
 
-  const { error } = await (supabase.from("expedientes") as any).insert(expedienteInsert);
+  const { error } = await supabase.from("expedientes").insert(expedienteInsert);
 
   if (error) {
     return { error: error.message };
@@ -67,7 +68,8 @@ export const updateExpedienteNotes = async (
   const supabase = await createClient();
 
   const expedientePatch: ExpedienteUpdate = { notas };
-  const { error } = await (supabase.from("expedientes") as any)
+  const { error } = await supabase
+    .from("expedientes")
     .update(expedientePatch)
     .eq("id", expedienteId);
 
@@ -90,7 +92,7 @@ export const createSujeto = async (
   const contacto = (formData.get("contacto") as string) || null;
 
   const sujetoInsert: SujetoInsert = { expediente_id, nombre, rol_procesal, dni, contacto };
-  const { error } = await (supabase.from("sujetos") as any).insert(sujetoInsert);
+  const { error } = await supabase.from("sujetos").insert(sujetoInsert);
 
   if (error) return { error: error.message };
 
@@ -117,7 +119,8 @@ export const uploadDocument = async (
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
-  const { data: profileData } = await (supabase.from("profiles") as any)
+  const { data: profileData } = await supabase
+    .from("profiles")
     .select("despacho_id")
     .eq("id", user.id)
     .single();
@@ -151,9 +154,9 @@ export const uploadDocument = async (
     mime_type: file.type || "application/octet-stream",
     size_bytes: file.size,
   };
-  const { error: dbError } = await (supabase.from("documentos") as any).insert(
-    documentoInsert
-  );
+  const { error: dbError } = await supabase
+    .from("documentos")
+    .insert(documentoInsert);
 
   if (dbError) return { error: dbError.message };
 

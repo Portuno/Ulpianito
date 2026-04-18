@@ -5,8 +5,17 @@ import { revalidatePath } from "next/cache";
 import { getServerProfile } from "@/lib/auth/profile";
 import { invokeEdgeFunction } from "@/lib/ius/edge-invoke";
 import { QUIZ_PASS_THRESHOLD_PCT } from "@/lib/ius/constants";
+import type { Database } from "@/lib/types/database";
 
 export type QuizActionState = { error: string | null; attemptId?: string };
+type QuizInsert = Database["public"]["Tables"]["quizzes"]["Insert"];
+type QuizAttemptInsert = Database["public"]["Tables"]["quiz_attempts"]["Insert"];
+type QuizAttemptAnswerInsert = Database["public"]["Tables"]["quiz_attempt_answers"]["Insert"];
+type QuizQuestionCheck = Pick<
+  Database["public"]["Tables"]["quiz_questions"]["Row"],
+  "id" | "correct_index"
+>;
+type ClaimQuizPassRewardArgs = Database["public"]["Functions"]["claim_quiz_pass_reward"]["Args"];
 
 export const createQuizDraft = async (input: {
   title: string;
@@ -20,9 +29,7 @@ export const createQuizDraft = async (input: {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("quizzes")
-    .insert({
+  const quizInsert: QuizInsert = {
       despacho_id: profile.despacho_id,
       title: input.title,
       source_label: input.sourceLabel ?? null,
@@ -30,7 +37,10 @@ export const createQuizDraft = async (input: {
       documento_id: input.documentoId ?? null,
       created_by: userId,
       status: "draft",
-    })
+    };
+  const { data, error } = await supabase
+    .from("quizzes")
+    .insert(quizInsert)
     .select("id")
     .single();
 
@@ -73,10 +83,11 @@ export const submitQuizAttempt = async (
 
   const supabase = await createClient();
 
-  const { data: questions, error: qErr } = await supabase
+  const { data: questionsData, error: qErr } = await supabase
     .from("quiz_questions")
     .select("id, correct_index")
     .eq("quiz_id", quizId);
+  const questions = (questionsData as QuizQuestionCheck[] | null) ?? [];
 
   if (qErr || !questions?.length) {
     return { error: qErr?.message ?? "Sin preguntas" };
@@ -93,15 +104,16 @@ export const submitQuizAttempt = async (
   const scorePct = Math.round((correct / questions.length) * 10000) / 100;
   const passed = scorePct >= QUIZ_PASS_THRESHOLD_PCT;
 
-  const { data: attempt, error: aErr } = await supabase
-    .from("quiz_attempts")
-    .insert({
+  const attemptInsert: QuizAttemptInsert = {
       quiz_id: quizId,
       profile_id: userId,
       score_pct: scorePct,
       passed,
       completed_at: new Date().toISOString(),
-    })
+    };
+  const { data: attempt, error: aErr } = await supabase
+    .from("quiz_attempts")
+    .insert(attemptInsert)
     .select("id")
     .single();
 
@@ -109,21 +121,27 @@ export const submitQuizAttempt = async (
     return { error: aErr?.message ?? "Error al guardar intento" };
   }
 
-  const rows = answers.map((a) => ({
+  const rows: QuizAttemptAnswerInsert[] = answers.map((a) => ({
     attempt_id: attempt.id,
     question_id: a.questionId,
     selected_index: a.selectedIndex,
   }));
 
-  const { error: ansErr } = await supabase.from("quiz_attempt_answers").insert(rows);
+  const { error: ansErr } = await supabase
+    .from("quiz_attempt_answers")
+    .insert(rows);
   if (ansErr) {
     return { error: ansErr.message };
   }
 
   if (passed) {
-    const { error: claimErr } = await supabase.rpc("claim_quiz_pass_reward", {
+    const claimPayload: ClaimQuizPassRewardArgs = {
       p_attempt_id: attempt.id,
-    });
+    };
+    const { error: claimErr } = await supabase.rpc(
+      "claim_quiz_pass_reward",
+      claimPayload
+    );
     if (claimErr) {
       return { error: claimErr.message };
     }

@@ -7,7 +7,7 @@ import Link from "next/link";
 type MissionRunReview = {
   id: string;
   status: string;
-  current_step: number;
+  current_step: string;
   missions: { title?: string } | null;
   profiles: { nombre?: string | null; apellido?: string | null } | null;
 };
@@ -36,11 +36,42 @@ const AdminRevisionesPage = async () => {
   const supabase = await createClient();
   const { data: runsData } = await supabase
     .from("mission_runs")
-    .select("id, status, current_step, created_at, missions(title), profiles(nombre, apellido)")
+    .select("id, status, current_step, mission_id, profile_id, created_at")
     .eq("despacho_id", profile.despacho_id)
     .eq("status", "training_pending")
     .order("created_at", { ascending: false });
-  const runs: MissionRunReview[] = (runsData ?? []) as MissionRunReview[];
+
+  const missionIds = Array.from(new Set((runsData ?? []).map((run) => run.mission_id)));
+  const profileIds = Array.from(new Set((runsData ?? []).map((run) => run.profile_id)));
+
+  const { data: missionsData } = await supabase
+    .from("missions")
+    .select("id, title")
+    .in("id", missionIds);
+
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, nombre, apellido")
+    .in("id", profileIds);
+
+  const missionsById = new Map((missionsData ?? []).map((mission) => [mission.id, mission]));
+  const profilesById = new Map((profilesData ?? []).map((prof) => [prof.id, prof]));
+
+  const runs: MissionRunReview[] = (runsData ?? []).map((run) => ({
+    id: run.id,
+    status: run.status,
+    current_step: run.current_step,
+    missions: (() => {
+      const mission = missionsById.get(run.mission_id);
+      if (!mission) return null;
+      return { title: mission.title };
+    })(),
+    profiles: (() => {
+      const prof = profilesById.get(run.profile_id);
+      if (!prof) return null;
+      return { nombre: prof.nombre, apellido: prof.apellido };
+    })(),
+  }));
 
   return (
     <div className="space-y-6">

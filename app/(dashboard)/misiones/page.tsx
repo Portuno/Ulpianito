@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Mission, MissionRun } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +22,10 @@ import { Badge } from "@/components/ui/badge";
 import { createMissionRun } from "@/app/(dashboard)/misiones/actions";
 import { Play } from "lucide-react";
 
+type MissionRunWithMission = MissionRun & {
+  missions: { title?: string | null; slug?: string | null } | null;
+};
+
 const MisionesPage = async () => {
   const supabase = await createClient();
   const {
@@ -30,17 +35,19 @@ const MisionesPage = async () => {
     redirect("/login");
   }
 
-  const { data: missions } = await supabase
+  const { data: missionsData } = await supabase
     .from("missions")
     .select("*")
     .order("created_at", { ascending: false });
+  const missions = (missionsData as Mission[] | null) ?? [];
 
-  const { data: runs } = await supabase
+  const { data: runsData } = await supabase
     .from("mission_runs")
     .select("*, missions(title, slug)")
     .eq("profile_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20);
+  const runs = (runsData as MissionRunWithMission[] | null) ?? [];
 
   return (
     <div className="space-y-8">
@@ -69,7 +76,7 @@ const MisionesPage = async () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(missions ?? []).map((m) => (
+              {missions.map((m) => (
                 <TableRow key={m.id}>
                   <TableCell className="font-medium">{m.title}</TableCell>
                   <TableCell>{m.mission_type}</TableCell>
@@ -96,7 +103,7 @@ const MisionesPage = async () => {
               ))}
             </TableBody>
           </Table>
-          {(missions ?? []).length === 0 && (
+          {missions.length === 0 && (
             <p className="text-sm text-muted-foreground">
               No hay misiones. Un administrador puede crear plantillas.
             </p>
@@ -119,7 +126,7 @@ const MisionesPage = async () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(runs ?? []).map((r) => {
+              {runs.map((r) => {
                 const title =
                   (r.missions as { title?: string } | null)?.title ?? "—";
                 return (
@@ -141,7 +148,7 @@ const MisionesPage = async () => {
               })}
             </TableBody>
           </Table>
-          {(runs ?? []).length === 0 && (
+          {runs.length === 0 && (
             <p className="text-sm text-muted-foreground">
               Todavía no iniciaste ninguna misión.
             </p>
