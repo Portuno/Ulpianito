@@ -67,7 +67,13 @@ export const runExtractionAndValidation = async (
 
   const supabase = await createClient();
 
-  await invokeEdgeFunction("extractor-ius-basic", { run_id: runId });
+  try {
+    await invokeEdgeFunction("extractor-ius-basic", { run_id: runId });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error al ejecutar extractor";
+    return { error: message };
+  }
 
   const claimPayload: ClaimMissionStepRewardArgs = {
     p_run_id: runId,
@@ -81,7 +87,13 @@ export const runExtractionAndValidation = async (
     return { error: claimErr.message };
   }
 
-  await invokeEdgeFunction("validator-ius-entities", { run_id: runId });
+  try {
+    await invokeEdgeFunction("validator-ius-entities", { run_id: runId });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error al ejecutar validador";
+    return { error: message };
+  }
 
   revalidatePath(`/misiones/runs/${runId}`);
   revalidatePath("/misiones");
@@ -182,7 +194,13 @@ export const runPlannerStep = async (runId: string): Promise<ActionState> => {
     return { error: "No autenticado" };
   }
 
-  await invokeEdgeFunction("planner-ius", { run_id: runId });
+  try {
+    await invokeEdgeFunction("planner-ius", { run_id: runId });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error al ejecutar planner";
+    return { error: message };
+  }
   revalidatePath(`/misiones/runs/${runId}`);
   return { error: null, ok: true };
 };
@@ -195,7 +213,13 @@ export const runWriterStep = async (runId: string): Promise<ActionState> => {
 
   const supabase = await createClient();
 
-  await invokeEdgeFunction("writer-ius-document", { run_id: runId });
+  try {
+    await invokeEdgeFunction("writer-ius-document", { run_id: runId });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Error al ejecutar redactor";
+    return { error: message };
+  }
 
   const claimPayload: ClaimMissionStepRewardArgs = {
     p_run_id: runId,

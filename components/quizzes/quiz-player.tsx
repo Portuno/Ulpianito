@@ -46,12 +46,18 @@ export const QuizPlayer = ({ quizId, questions }: QuizPlayerProps) => {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div
+          className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </div>
       )}
       {result && (
-        <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-400">
+        <div
+          className="rounded-md bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-400"
+          role="status"
+        >
           {result}
         </div>
       )}
@@ -75,6 +81,7 @@ export const QuizPlayer = ({ quizId, questions }: QuizPlayerProps) => {
                       : "border-border hover:bg-muted"
                   }`}
                   onClick={() => handleSelect(q.id, optionIdx)}
+                  aria-pressed={answers[q.id] === optionIdx}
                   aria-label={`Elegir opción ${optionIdx + 1}`}
                 >
                   {String(opt)}
@@ -84,7 +91,12 @@ export const QuizPlayer = ({ quizId, questions }: QuizPlayerProps) => {
           </Card>
         );
       })}
-      <Button type="button" onClick={handleSubmit} disabled={isPending}>
+      <Button
+        type="button"
+        onClick={handleSubmit}
+        disabled={isPending}
+        aria-busy={isPending}
+      >
         {isPending ? "Enviando…" : "Enviar quiz"}
       </Button>
     </div>

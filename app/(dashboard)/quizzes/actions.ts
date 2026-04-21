@@ -81,6 +81,10 @@ export const submitQuizAttempt = async (
     return { error: "No autenticado" };
   }
 
+  if (!quizId || answers.length === 0) {
+    return { error: "Intento inválido: faltan respuestas." };
+  }
+
   const supabase = await createClient();
 
   const { data: questionsData, error: qErr } = await supabase
@@ -91,6 +95,16 @@ export const submitQuizAttempt = async (
 
   if (qErr || !questions?.length) {
     return { error: qErr?.message ?? "Sin preguntas" };
+  }
+
+  const questionIds = new Set(questions.map((q) => q.id));
+  for (const answer of answers) {
+    if (!questionIds.has(answer.questionId)) {
+      return { error: "Se detectaron respuestas para preguntas inválidas." };
+    }
+    if (!Number.isInteger(answer.selectedIndex) || answer.selectedIndex < 0) {
+      return { error: "Se detectaron opciones inválidas en las respuestas." };
+    }
   }
 
   let correct = 0;

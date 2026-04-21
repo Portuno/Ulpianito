@@ -107,8 +107,12 @@ export const deleteSujeto = async (
   expedienteId: string
 ) => {
   const supabase = await createClient();
-  await supabase.from("sujetos").delete().eq("id", sujetoId);
+  const { error } = await supabase.from("sujetos").delete().eq("id", sujetoId);
+  if (error) {
+    return { error: error.message };
+  }
   revalidatePath(`/expedientes/${expedienteId}`);
+  return { error: null };
 };
 
 export const uploadDocument = async (
@@ -173,10 +177,22 @@ export const deleteDocument = async (
 ) => {
   const supabase = await createClient();
 
-  await supabase.storage.from("documentos").remove([storagePath]);
-  await supabase.from("documentos").delete().eq("id", documentId);
+  const { error: storageError } = await supabase.storage
+    .from("documentos")
+    .remove([storagePath]);
+  if (storageError) {
+    return { error: storageError.message };
+  }
+  const { error: dbError } = await supabase
+    .from("documentos")
+    .delete()
+    .eq("id", documentId);
+  if (dbError) {
+    return { error: dbError.message };
+  }
 
   revalidatePath(`/expedientes/${expedienteId}`);
+  return { error: null };
 };
 
 type ActivosInsert = Database["public"]["Tables"]["activos"]["Insert"];

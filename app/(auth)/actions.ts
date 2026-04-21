@@ -14,8 +14,12 @@ export const login = async (
 ): Promise<AuthState> => {
   const supabase = await createClient();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    return { error: "Completá email y contraseña." };
+  }
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -35,11 +39,18 @@ export const register = async (
 ): Promise<AuthState> => {
   const supabase = await createClient();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const nombre = formData.get("nombre") as string;
-  const apellido = formData.get("apellido") as string;
-  const nombreDespacho = formData.get("nombreDespacho") as string;
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const apellido = String(formData.get("apellido") ?? "").trim();
+  const nombreDespacho = String(formData.get("nombreDespacho") ?? "").trim();
+
+  if (!email || !password || !nombre || !apellido || !nombreDespacho) {
+    return { error: "Completá todos los campos requeridos." };
+  }
+  if (password.length < 8) {
+    return { error: "La contraseña debe tener al menos 8 caracteres." };
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,

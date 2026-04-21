@@ -332,7 +332,12 @@ export const MissionRunWizard = ({
                 onChange={(e) => setHitlNotes(e.target.value)}
               />
             </div>
-            <Button type="button" onClick={handleHitl} disabled={isPending}>
+            <Button
+              type="button"
+              onClick={handleHitl}
+              disabled={isPending}
+              aria-busy={isPending}
+            >
               {isPending ? "…" : "Aprobar y continuar"}
             </Button>
           </CardContent>
@@ -381,6 +386,7 @@ export const MissionRunWizard = ({
               type="button"
               onClick={handlePlanner}
               disabled={isPending}
+              aria-busy={isPending}
             >
               {isPending ? "…" : "Generar plan"}
             </Button>
@@ -401,6 +407,7 @@ export const MissionRunWizard = ({
               type="button"
               onClick={handleWriter}
               disabled={isPending}
+              aria-busy={isPending}
             >
               {isPending ? "…" : "Generar borrador"}
             </Button>
@@ -459,6 +466,7 @@ export const MissionRunWizard = ({
                 variant="default"
                 onClick={() => handleTraining("approved")}
                 disabled={isPending}
+                aria-busy={isPending}
               >
                 Aprobar
               </Button>
@@ -467,6 +475,7 @@ export const MissionRunWizard = ({
                 variant="secondary"
                 onClick={() => handleTraining("needs_work")}
                 disabled={isPending}
+                aria-busy={isPending}
               >
                 Necesita trabajo
               </Button>

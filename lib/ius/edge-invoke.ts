@@ -4,6 +4,12 @@ export const invokeEdgeFunction = async <T>(
   functionName: string,
   body: Record<string, unknown>
 ): Promise<T> => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Configuración de Supabase incompleta para Edge Functions");
+  }
+
   const supabase = await createClient();
   const {
     data: { session },
@@ -13,15 +19,21 @@ export const invokeEdgeFunction = async <T>(
     throw new Error("Sesión no disponible");
   }
 
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/${functionName}`;
+  const url = `${supabaseUrl}/functions/v1/${functionName}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      apikey: supabaseAnonKey,
+      "x-client-info": "ulpianito-web",
     },
     body: JSON.stringify(body),
+    signal: controller.signal,
+  }).finally(() => {
+    clearTimeout(timeoutId);
   });
 
   const json = (await res.json()) as T & { error?: string };
