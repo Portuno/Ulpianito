@@ -94,7 +94,7 @@ export const DocumentUploader = ({
       )}
       <p className={`font-medium ${isCompact ? "mt-1 text-xs" : "mt-2 text-sm"}`}>
         {isUploading
-          ? "Analizando semánticamente con Gemini..."
+          ? "Subiendo archivo…"
           : isCompact
             ? "Suelta aquí o elige archivo"
             : "Arrastra un archivo o haz clic para seleccionar"}

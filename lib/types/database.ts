@@ -7,6 +7,47 @@ export type AiSummary = {
   modelo?: string;
 };
 
+/** Payload versionado guardado en documentos.extraction_report (Gemini / edición manual). */
+export type DocumentExtractionReport = {
+  schema_version: number;
+  clasificacion?: {
+    tipo_documento_detectado?: string;
+    idioma?: string;
+    resumen_corto?: string;
+  };
+  partes_y_proceso?: {
+    personas_juridicas?: {
+      nombre?: string;
+      rol?: string;
+      identificadores?: string;
+    }[];
+    personas_fisicas?: {
+      nombre?: string;
+      rol?: string;
+      documento?: string;
+    }[];
+    organos_jurisdiccionales?: { nombre?: string; referencia?: string }[];
+    fechas_relevantes?: { descripcion?: string; fecha?: string }[];
+    referencias_procesales?: string[];
+  };
+  aspecto_patrimonial?: {
+    importes?: {
+      concepto?: string;
+      importe?: string;
+      moneda?: string;
+    }[];
+    lineas_detalle?: {
+      descripcion?: string;
+      cantidad?: string;
+      importe?: string;
+    }[];
+  };
+  otros?: {
+    observaciones?: string;
+    campos_adicionales?: Record<string, string>;
+  };
+};
+
 export type Json =
   | string
   | number
@@ -138,6 +179,11 @@ export type Database = {
           origen: string;
           validado_por: string | null;
           validado_at: string | null;
+          extraction_status?: string;
+          extraction_report?: DocumentExtractionReport | null;
+          extraction_error?: string | null;
+          extraction_at?: string | null;
+          extraction_model?: string | null;
           created_at: string;
         };
         Insert: {
@@ -152,6 +198,11 @@ export type Database = {
           origen?: string;
           validado_por?: string | null;
           validado_at?: string | null;
+          extraction_status?: string;
+          extraction_report?: DocumentExtractionReport | null;
+          extraction_error?: string | null;
+          extraction_at?: string | null;
+          extraction_model?: string | null;
           created_at?: string;
         };
         Update: {
@@ -160,6 +211,11 @@ export type Database = {
           origen?: string;
           validado_por?: string | null;
           validado_at?: string | null;
+          extraction_status?: string;
+          extraction_report?: DocumentExtractionReport | null;
+          extraction_error?: string | null;
+          extraction_at?: string | null;
+          extraction_model?: string | null;
         };
       };
       sujetos: {

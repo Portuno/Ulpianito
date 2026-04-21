@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -10,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileText, Image, File, Trash2 } from "lucide-react";
+import { FileText, Image, File, Trash2, Eye } from "lucide-react";
 import { deleteDocument } from "@/app/(dashboard)/expedientes/actions";
 import { toast } from "sonner";
 import type { Documento } from "@/lib/types/database";
@@ -47,9 +48,14 @@ const tipoEtiqueta = (doc: Documento) => {
 };
 
 const estadoIa = (doc: Documento) => {
+  const st = doc.extraction_status ?? "pending";
+  if (st === "processing") return "Extrayendo…";
+  if (st === "failed") return "Error extracción";
+  if (st === "done" && doc.validado_at) return "Validado";
+  if (st === "done") return "Listo para revisar";
   if (doc.validado_at) return "Validado";
   if (doc.origen === "ia") return "Pendiente de revisión";
-  return "Sin validar IA";
+  return "Sin analizar";
 };
 
 export const DocumentList = ({
@@ -91,6 +97,7 @@ export const DocumentList = ({
               <TableHead>Tamaño</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Validación IA</TableHead>
+              <TableHead className="text-right">Revisar</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -120,6 +127,16 @@ export const DocumentList = ({
                     {new Date(doc.created_at).toLocaleDateString("es-ES")}
                   </TableCell>
                   <TableCell className="text-sm">{estadoIa(doc)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link
+                        href={`/expedientes/${expedienteId}/documentos/${doc.id}`}
+                        aria-label={`Abrir detalle de ${doc.nombre}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="ghost"

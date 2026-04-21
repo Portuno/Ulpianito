@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { MobileSidebar } from "./sidebar";
 import { UserNavDropdown } from "./user-nav";
-import { Coins } from "lucide-react";
 import { TopbarContext } from "./topbar-context";
+import { IusTopbarBalance } from "./ius-topbar-balance";
 
 export const Topbar = async () => {
   const supabase = await createClient();
@@ -46,10 +46,7 @@ export const Topbar = async () => {
       <div className="flex-1">
         <TopbarContext />
       </div>
-      <div className="hidden items-center gap-2 rounded-full border bg-muted/60 px-3 py-1 text-sm font-semibold md:flex">
-        <Coins className="h-4 w-4 text-amber-500" aria-hidden="true" />
-        <span>{iusBalance} IUS</span>
-      </div>
+      <IusTopbarBalance balance={iusBalance} />
       <UserNavDropdown initials={initials} nombre={nombre} email={email} />
     </header>
   );

@@ -62,6 +62,13 @@ const getHeaderContent = (pathname: string): HeaderContent => {
     };
   }
 
+  if (/^\/expedientes\/[^/]+\/documentos\/[^/]+$/.test(pathname)) {
+    return {
+      title: "Detalle de documento",
+      description: "Visor del archivo y datos extraídos para validación.",
+    };
+  }
+
   if (/^\/expedientes\/[^/]+$/.test(pathname)) {
     return {
       title: "Detalle de Expediente",

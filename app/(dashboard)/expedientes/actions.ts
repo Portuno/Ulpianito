@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { Database } from "@/lib/types/database";
+import type { Database, DocumentExtractionReport } from "@/lib/types/database";
+import { invokeEdgeFunction } from "@/lib/ius/edge-invoke";
+import { getServerProfile } from "@/lib/auth/profile";
 
 export type ExpedienteState = {
   error: string | null;
@@ -175,4 +177,255 @@ export const deleteDocument = async (
   await supabase.from("documentos").delete().eq("id", documentId);
 
   revalidatePath(`/expedientes/${expedienteId}`);
+};
+
+type ActivosInsert = Database["public"]["Tables"]["activos"]["Insert"];
+
+const revalidateDocumentPaths = (
+  expedienteId: string,
+  documentoId: string
+) => {
+  revalidatePath(`/expedientes/${expedienteId}`);
+  revalidatePath(`/expedientes/${expedienteId}/documentos/${documentoId}`);
+};
+
+export const runDocumentExtraction = async (
+  documentoId: string,
+  expedienteId: string
+): Promise<{ error: string | null }> => {
+  const { userId } = await getServerProfile();
+  if (!userId) return { error: "No autenticado" };
+
+  const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("documentos")
+    .select("id")
+    .eq("id", documentoId)
+    .eq("expediente_id", expedienteId)
+    .single();
+
+  if (!doc) return { error: "Documento no encontrado" };
+
+  try {
+    await invokeEdgeFunction("document-extract-gemini", {
+      documento_id: documentoId,
+    });
+    revalidateDocumentPaths(expedienteId, documentoId);
+    return { error: null };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error al extraer";
+    revalidateDocumentPaths(expedienteId, documentoId);
+    return { error: msg };
+  }
+};
+
+export const saveDocumentExtractionReport = async (
+  documentoId: string,
+  expedienteId: string,
+  report: DocumentExtractionReport
+): Promise<{ error: string | null }> => {
+  const { userId } = await getServerProfile();
+  if (!userId) return { error: "No autenticado" };
+
+  const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("documentos")
+    .select("id")
+    .eq("id", documentoId)
+    .eq("expediente_id", expedienteId)
+    .single();
+
+  if (!doc) return { error: "Documento no encontrado" };
+
+  const { error } = await supabase
+    .from("documentos")
+    .update({ extraction_report: report })
+    .eq("id", documentoId);
+
+  if (error) return { error: error.message };
+
+  revalidateDocumentPaths(expedienteId, documentoId);
+  return { error: null };
+};
+
+export const validateDocumentExtraction = async (
+  documentoId: string,
+  expedienteId: string
+): Promise<{ error: string | null }> => {
+  const { userId } = await getServerProfile();
+  if (!userId) return { error: "No autenticado" };
+
+  const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("documentos")
+    .select("id, extraction_status")
+    .eq("id", documentoId)
+    .eq("expediente_id", expedienteId)
+    .single();
+
+  if (!doc) return { error: "Documento no encontrado" };
+  if (doc.extraction_status !== "done") {
+    return { error: "Solo podés validar después de una extracción completada" };
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("documentos")
+    .update({
+      validado_por: userId,
+      validado_at: now,
+      origen: "ia",
+    })
+    .eq("id", documentoId);
+
+  if (error) return { error: error.message };
+
+  revalidateDocumentPaths(expedienteId, documentoId);
+  return { error: null };
+};
+
+const parseImporteNumber = (raw: string | undefined): number | null => {
+  if (!raw || typeof raw !== "string") return null;
+  const t = raw.trim().replace(/\s/g, "");
+  if (!t) return null;
+  const comma = t.lastIndexOf(",");
+  const dot = t.lastIndexOf(".");
+  let normalized: string;
+  if (comma > dot) {
+    normalized = t.replace(/\./g, "").replace(",", ".");
+  } else {
+    normalized = t.replace(/,/g, "");
+  }
+  const n = Number.parseFloat(normalized);
+  return Number.isFinite(n) ? n : null;
+};
+
+export const applyExtractionToExpediente = async (
+  documentoId: string,
+  expedienteId: string
+): Promise<{ error: string | null; created?: { sujetos: number; activos: number } }> => {
+  const { userId } = await getServerProfile();
+  if (!userId) return { error: "No autenticado" };
+
+  const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("documentos")
+    .select("id, extraction_report, extraction_status, validado_at")
+    .eq("id", documentoId)
+    .eq("expediente_id", expedienteId)
+    .single();
+
+  if (!doc) return { error: "Documento no encontrado" };
+  if (!doc.extraction_report || (doc.extraction_status ?? "") !== "done") {
+    return { error: "No hay un reporte extraído para aplicar" };
+  }
+  if (!doc.validado_at) {
+    return { error: "Validá primero los datos extraídos" };
+  }
+
+  const report = doc.extraction_report as DocumentExtractionReport;
+  const partes = report.partes_y_proceso;
+  let sujetosCount = 0;
+  let activosCount = 0;
+
+  if (partes?.personas_juridicas) {
+    for (const pj of partes.personas_juridicas) {
+      const nombre = pj.nombre?.trim();
+      if (!nombre) continue;
+      const ins: Database["public"]["Tables"]["sujetos"]["Insert"] = {
+        expediente_id: expedienteId,
+        nombre,
+        rol_procesal: pj.rol?.trim() || "Parte",
+        tipo_sujeto: "parte",
+        notas: pj.identificadores?.trim()
+          ? `Persona jurídica · ${pj.identificadores.trim()}`
+          : null,
+        origen: "ia",
+        validado_por: userId,
+        validado_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("sujetos").insert(ins);
+      if (error) return { error: error.message };
+      sujetosCount += 1;
+    }
+  }
+
+  if (partes?.personas_fisicas) {
+    for (const pf of partes.personas_fisicas) {
+      const nombre = pf.nombre?.trim();
+      if (!nombre) continue;
+      const ins: Database["public"]["Tables"]["sujetos"]["Insert"] = {
+        expediente_id: expedienteId,
+        nombre,
+        rol_procesal: pf.rol?.trim() || "Parte",
+        tipo_sujeto: "parte",
+        dni: pf.documento?.trim() || null,
+        origen: "ia",
+        validado_por: userId,
+        validado_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("sujetos").insert(ins);
+      if (error) return { error: error.message };
+      sujetosCount += 1;
+    }
+  }
+
+  const pat = report.aspecto_patrimonial;
+  if (pat?.importes) {
+    for (const row of pat.importes) {
+      const concepto = row.concepto?.trim();
+      if (!concepto && !row.importe?.trim()) continue;
+      const valor = parseImporteNumber(row.importe);
+      const descripcion =
+        concepto ||
+        (row.importe ? `Importe ${row.importe}` : "Partida patrimonial");
+      const activo: ActivosInsert = {
+        expediente_id: expedienteId,
+        created_by: userId,
+        tipo: "activo",
+        categoria: "otro",
+        descripcion,
+        valor_estimado: valor,
+        moneda: row.moneda?.trim() || "ARS",
+        notas: `Desde documento ${documentoId}`,
+        origen: "ia",
+        validado_por: userId,
+        validado_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("activos").insert(activo);
+      if (error) return { error: error.message };
+      activosCount += 1;
+    }
+  }
+
+  if (pat?.lineas_detalle) {
+    for (const row of pat.lineas_detalle) {
+      const descripcion = row.descripcion?.trim();
+      if (!descripcion) continue;
+      const valor = parseImporteNumber(row.importe);
+      const activo: ActivosInsert = {
+        expediente_id: expedienteId,
+        created_by: userId,
+        tipo: "activo",
+        categoria: "otro",
+        descripcion,
+        valor_estimado: valor,
+        moneda: "ARS",
+        notas: `Línea · doc ${documentoId}`,
+        origen: "ia",
+        validado_por: userId,
+        validado_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("activos").insert(activo);
+      if (error) return { error: error.message };
+      activosCount += 1;
+    }
+  }
+
+  revalidatePath(`/expedientes/${expedienteId}`);
+  revalidateDocumentPaths(expedienteId, documentoId);
+  return {
+    error: null,
+    created: { sujetos: sujetosCount, activos: activosCount },
+  };
 };

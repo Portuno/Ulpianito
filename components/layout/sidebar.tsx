@@ -53,7 +53,7 @@ const lowerGroup: NavGroup = {
   label: "Crecimiento",
   items: [
     { href: "/academia", label: "Academia Ulpianito", icon: GraduationCap },
-    { href: "/dashboard#ius", label: "Economía IUS", icon: Coins },
+    { href: "/ius", label: "Economía IUS", icon: Coins },
     { href: "/documentacion", label: "Documentación", icon: FileText },
   ],
 };
