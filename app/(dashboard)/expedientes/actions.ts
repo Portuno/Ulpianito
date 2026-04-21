@@ -300,6 +300,36 @@ const parseImporteNumber = (raw: string | undefined): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+const normalizeTextKey = (value: string | null | undefined): string =>
+  (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+
+const buildSujetoDedupeKey = (
+  nombre: string,
+  rolProcesal: string,
+  dni?: string | null
+): string => {
+  return [
+    normalizeTextKey(nombre),
+    normalizeTextKey(rolProcesal),
+    normalizeTextKey(dni ?? null),
+  ].join("|");
+};
+
+const buildActivoDedupeKey = (
+  descripcion: string,
+  moneda: string,
+  valor?: number | null
+): string => {
+  const valueToken = Number.isFinite(valor ?? NaN)
+    ? (valor as number).toFixed(2)
+    : "null";
+  return [
+    normalizeTextKey(descripcion),
+    normalizeTextKey(moneda),
+    valueToken,
+  ].join("|");
+};
+
 export const applyExtractionToExpediente = async (
   documentoId: string,
   expedienteId: string
@@ -327,6 +357,31 @@ export const applyExtractionToExpediente = async (
   const partes = report.partes_y_proceso;
   let sujetosCount = 0;
   let activosCount = 0;
+  const { data: sujetosData } = await supabase
+    .from("sujetos")
+    .select("nombre, rol_procesal, dni")
+    .eq("expediente_id", expedienteId);
+  const existingSujetoKeys = new Set(
+    (sujetosData ?? []).map((s) =>
+      buildSujetoDedupeKey(s.nombre, s.rol_procesal, s.dni)
+    )
+  );
+  const seenSujetoKeys = new Set<string>();
+
+  const { data: activosData } = await supabase
+    .from("activos")
+    .select("descripcion, moneda, valor_estimado")
+    .eq("expediente_id", expedienteId);
+  const existingActivoKeys = new Set(
+    (activosData ?? []).map((a) =>
+      buildActivoDedupeKey(
+        a.descripcion,
+        a.moneda ?? "ARS",
+        a.valor_estimado == null ? null : Number(a.valor_estimado)
+      )
+    )
+  );
+  const seenActivoKeys = new Set<string>();
 
   if (partes?.personas_juridicas) {
     for (const pj of partes.personas_juridicas) {
@@ -344,8 +399,11 @@ export const applyExtractionToExpediente = async (
         validado_por: userId,
         validado_at: new Date().toISOString(),
       };
+      const dedupeKey = buildSujetoDedupeKey(ins.nombre, ins.rol_procesal, ins.dni);
+      if (existingSujetoKeys.has(dedupeKey) || seenSujetoKeys.has(dedupeKey)) continue;
       const { error } = await supabase.from("sujetos").insert(ins);
       if (error) return { error: error.message };
+      seenSujetoKeys.add(dedupeKey);
       sujetosCount += 1;
     }
   }
@@ -364,8 +422,11 @@ export const applyExtractionToExpediente = async (
         validado_por: userId,
         validado_at: new Date().toISOString(),
       };
+      const dedupeKey = buildSujetoDedupeKey(ins.nombre, ins.rol_procesal, ins.dni);
+      if (existingSujetoKeys.has(dedupeKey) || seenSujetoKeys.has(dedupeKey)) continue;
       const { error } = await supabase.from("sujetos").insert(ins);
       if (error) return { error: error.message };
+      seenSujetoKeys.add(dedupeKey);
       sujetosCount += 1;
     }
   }
@@ -392,8 +453,15 @@ export const applyExtractionToExpediente = async (
         validado_por: userId,
         validado_at: new Date().toISOString(),
       };
+      const dedupeKey = buildActivoDedupeKey(
+        activo.descripcion,
+        activo.moneda ?? "ARS",
+        activo.valor_estimado == null ? null : Number(activo.valor_estimado)
+      );
+      if (existingActivoKeys.has(dedupeKey) || seenActivoKeys.has(dedupeKey)) continue;
       const { error } = await supabase.from("activos").insert(activo);
       if (error) return { error: error.message };
+      seenActivoKeys.add(dedupeKey);
       activosCount += 1;
     }
   }
@@ -416,8 +484,15 @@ export const applyExtractionToExpediente = async (
         validado_por: userId,
         validado_at: new Date().toISOString(),
       };
+      const dedupeKey = buildActivoDedupeKey(
+        activo.descripcion,
+        activo.moneda ?? "ARS",
+        activo.valor_estimado == null ? null : Number(activo.valor_estimado)
+      );
+      if (existingActivoKeys.has(dedupeKey) || seenActivoKeys.has(dedupeKey)) continue;
       const { error } = await supabase.from("activos").insert(activo);
       if (error) return { error: error.message };
+      seenActivoKeys.add(dedupeKey);
       activosCount += 1;
     }
   }
