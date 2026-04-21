@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { IusWallet } from "@/lib/types/database";
 import { KPICard } from "@/components/dashboard/kpi-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
-import { FileText, FolderOpen, Clock, CalendarDays, Coins } from "lucide-react";
+import { FileText, FolderOpen, Clock, CalendarDays } from "lucide-react";
 
 const DashboardPage = async () => {
   const supabase = await createClient();
@@ -25,10 +24,11 @@ const DashboardPage = async () => {
     { count: pendientesRevision },
     { count: documentosSemana },
     { data: recentDocs },
-    { data: wallet },
-    { count: iusThisWeek },
   ] = await Promise.all([
-    supabase.from("documentos").select("*", { count: "planned", head: true }),
+    supabase
+      .from("documentos")
+      .select("*", { count: "planned", head: true })
+      .eq("uploaded_by", user.id),
     supabase
       .from("expedientes")
       .select("*", { count: "planned", head: true })
@@ -40,26 +40,15 @@ const DashboardPage = async () => {
     supabase
       .from("documentos")
       .select("*", { count: "planned", head: true })
+      .eq("uploaded_by", user.id)
       .gte("created_at", oneWeekAgo),
     supabase
       .from("documentos")
       .select("id, nombre, created_at")
+      .eq("uploaded_by", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
-    supabase
-      .from("ius_wallets")
-      .select("balance")
-      .eq("profile_id", user.id)
-      .single(),
-    supabase
-      .from("ius_ledger")
-      .select("*", { count: "planned", head: true })
-      .eq("profile_id", user.id)
-      .gt("delta", 0)
-      .gte("created_at", oneWeekAgo),
   ]);
-
-  const walletBalance = (wallet as Pick<IusWallet, "balance"> | null)?.balance ?? 0;
 
   return (
     <div className="space-y-6">
@@ -83,15 +72,6 @@ const DashboardPage = async () => {
           title="Docs. esta semana"
           value={documentosSemana ?? 0}
           icon={CalendarDays}
-        />
-      </div>
-
-      <div id="ius" className="grid gap-4 sm:grid-cols-2">
-        <KPICard title="Saldo IUS" value={walletBalance} icon={Coins} />
-        <KPICard
-          title="Recompensas IUS (7 días)"
-          value={iusThisWeek ?? 0}
-          icon={Coins}
         />
       </div>
 

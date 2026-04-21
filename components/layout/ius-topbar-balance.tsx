@@ -25,14 +25,18 @@ export const IusTopbarBalance = ({ balance }: IusTopbarBalanceProps) => {
           <span className="min-w-0 truncate tabular-nums">{balance} IUS</span>
         </button>
       </HoverCardTrigger>
-      <HoverCardContent className="space-y-3" align="end">
-        <p className="text-pretty leading-snug">
+      <HoverCardContent
+        className="z-50 w-72 space-y-3 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg"
+        align="end"
+        sideOffset={8}
+      >
+        <p className="text-sm leading-relaxed">
           Los IUS son la moneda nativa y local de Ulpianito. Para más
           información, tocá o hacé clic abajo.
         </p>
         <Link
           href="/ius"
-          className="inline-flex font-medium text-primary underline underline-offset-4 hover:text-primary/90"
+          className="inline-flex text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/90"
         >
           Más sobre Ius
         </Link>
