@@ -27,8 +27,9 @@ const getAgingHours = (createdAt: string) =>
 const ValidacionPage = async ({
   searchParams,
 }: {
-  searchParams?: { priority?: string; scope?: string };
+  searchParams?: Promise<{ priority?: string; scope?: string }>;
 }) => {
+  const resolvedSearchParams = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -53,6 +54,7 @@ const ValidacionPage = async ({
     return {
       id: row.id,
       documento: row.nombre,
+      expedienteId: row.expediente_id,
       expediente: (row.expedientes as { titulo?: string } | null)?.titulo ?? "Sin título",
       priority,
       priorityScore,
@@ -62,8 +64,8 @@ const ValidacionPage = async ({
     };
   });
 
-  const selectedPriority = searchParams?.priority ?? "all";
-  const selectedScope = searchParams?.scope ?? "all";
+  const selectedPriority = resolvedSearchParams?.priority ?? "all";
+  const selectedScope = resolvedSearchParams?.scope ?? "all";
 
   const filteredQueue = queue.filter((item) => {
     const priorityMatch =
@@ -180,7 +182,9 @@ const ValidacionPage = async ({
                     <div className="inline-flex gap-2">
                       <Button size="sm" variant="outline">Tomar</Button>
                       <Button size="sm" variant="outline" asChild>
-                        <Link href="/admin/revisiones">Abrir</Link>
+                        <Link href={`/expedientes/${item.expedienteId}/documentos/${item.id}`}>
+                          Revisar
+                        </Link>
                       </Button>
                     </div>
                   </TableCell>

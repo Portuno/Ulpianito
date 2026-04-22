@@ -194,7 +194,7 @@ export const DocumentDetailWorkspace = ({
   };
 
   return (
-    <div className="grid min-h-[72vh] gap-6 lg:grid-cols-2">
+    <div className="grid min-h-[72vh] gap-6 lg:grid-cols-[3fr_2fr]">
       <Card className="flex min-h-[420px] flex-col overflow-hidden">
         <CardHeader className="py-3">
           <CardTitle className="text-base">Documento original</CardTitle>
@@ -237,7 +237,7 @@ export const DocumentDetailWorkspace = ({
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:max-h-[80vh] lg:overflow-y-auto lg:pr-1">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">
             {statusLabel(documento.extraction_status ?? "pending")}

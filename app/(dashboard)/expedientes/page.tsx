@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
-import { FolderPlus } from "lucide-react";
 import { ExpedientesTable } from "@/components/expedientes/expedientes-table";
+import { NewExpedienteSheet } from "@/components/expedientes/new-expediente-sheet";
 
 const ExpedientesPage = async () => {
   const supabase = await createClient();
@@ -15,12 +13,7 @@ const ExpedientesPage = async () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button asChild>
-          <Link href="/expedientes/nuevo">
-            <FolderPlus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nuevo Expediente
-          </Link>
-        </Button>
+        <NewExpedienteSheet />
       </div>
 
       <ExpedientesTable expedientes={expedientes ?? []} />

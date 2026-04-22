@@ -9,6 +9,7 @@ import { getServerProfile } from "@/lib/auth/profile";
 
 export type ExpedienteState = {
   error: string | null;
+  createdId?: string;
 };
 
 type ProfileMin = Pick<Database["public"]["Tables"]["profiles"]["Row"], "despacho_id">;
@@ -58,6 +59,12 @@ export const createExpediente = async (
 
   if (error) {
     return { error: error.message };
+  }
+
+  const creationMode = String(formData.get("creation_mode") ?? "");
+  if (creationMode === "inline_sheet") {
+    revalidatePath("/expedientes");
+    return { error: null, createdId: expedienteId };
   }
 
   redirect(`/expedientes/${expedienteId}`);

@@ -18,7 +18,7 @@ export const IusTopbarBalance = ({ balance }: IusTopbarBalanceProps) => {
       <HoverCardTrigger asChild>
         <button
           type="button"
-          className="flex max-w-[min(100%,11rem)] items-center gap-2 rounded-full border bg-muted/60 px-2 py-1 text-xs font-semibold sm:px-3 sm:text-sm"
+          className="flex max-w-[min(100%,11rem)] items-center gap-2 rounded-full border border-border bg-background px-2 py-1 text-xs font-semibold shadow-sm sm:px-3 sm:text-sm"
           aria-label={`Saldo IUS: ${balance}. Más información sobre IUS`}
         >
           <Coins className="h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
@@ -26,7 +26,7 @@ export const IusTopbarBalance = ({ balance }: IusTopbarBalanceProps) => {
         </button>
       </HoverCardTrigger>
       <HoverCardContent
-        className="z-50 w-72 space-y-3 rounded-xl border bg-popover p-4 text-popover-foreground shadow-lg"
+        className="z-50 w-72 space-y-3 rounded-xl border border-border bg-white p-4 text-foreground shadow-lg backdrop-blur-0 dark:bg-zinc-950"
         align="end"
         sideOffset={8}
       >

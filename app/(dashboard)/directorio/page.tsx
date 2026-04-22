@@ -3,6 +3,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Building2, UserRoundCog } from "lucide-react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import {
   Table,
   TableBody,
@@ -12,18 +14,115 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const DirectorioPage = () => {
-  const roles = [
-    { name: "Socio", scope: "Estrategia y aprobaciones finales", users: 2 },
-    { name: "Asociado", scope: "Producción jurídica y supervisión de IA", users: 4 },
-    { name: "Paralegal", scope: "Carga documental y control operativo", users: 6 },
-  ];
+type ProfileDirectory = {
+  id: string;
+  nombre: string | null;
+  apellido: string | null;
+  rol: string | null;
+};
 
-  const unidades = [
-    { unidad: "Litigios", integrantes: 5, expedientesActivos: 14 },
-    { unidad: "Compliance", integrantes: 3, expedientesActivos: 8 },
-    { unidad: "Contratos", integrantes: 4, expedientesActivos: 9 },
-  ];
+type ExpedienteDirectory = {
+  id: string;
+  tipo: string | null;
+  estado: string | null;
+  created_by: string | null;
+};
+
+const roleScopeMap: Record<string, string> = {
+  admin: "Gobierno de acceso y configuración operativa.",
+  jurista: "Producción jurídica y supervisión de calidad.",
+  abogado: "Gestión legal y resolución de casos.",
+  asociado: "Ejecución técnica y seguimiento de expedientes.",
+  paralegal: "Carga documental y control de soporte.",
+};
+
+const defaultScope = "Responsabilidad definida por la operación del despacho.";
+
+const normalizeLabel = (value: string | null | undefined, fallback: string) => {
+  if (!value) return fallback;
+  const normalized = value.trim();
+  if (!normalized) return fallback;
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
+const DirectorioPage = async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("despacho_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.despacho_id) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Directorio</h1>
+          <p className="text-muted-foreground">
+            No pudimos identificar tu despacho para construir el directorio.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const [{ data: profiles }, { data: expedientes }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, nombre, apellido, rol")
+      .eq("despacho_id", profile.despacho_id),
+    supabase
+      .from("expedientes")
+      .select("id, tipo, estado, created_by")
+      .eq("despacho_id", profile.despacho_id),
+  ]);
+
+  const members = (profiles ?? []) as ProfileDirectory[];
+  const cases = (expedientes ?? []) as ExpedienteDirectory[];
+
+  const rolesByCount = new Map<string, number>();
+  members.forEach((member) => {
+    const roleKey = (member.rol ?? "sin_rol").trim().toLowerCase() || "sin_rol";
+    rolesByCount.set(roleKey, (rolesByCount.get(roleKey) ?? 0) + 1);
+  });
+
+  const roles = [...rolesByCount.entries()]
+    .map(([roleKey, users]) => ({
+      name: normalizeLabel(roleKey === "sin_rol" ? "Sin rol" : roleKey, "Sin rol"),
+      scope: roleScopeMap[roleKey] ?? defaultScope,
+      users,
+    }))
+    .sort((a, b) => b.users - a.users);
+
+  const membersById = new Map(members.map((member) => [member.id, member]));
+  const unitsAccumulator = new Map<string, { integrantes: Set<string>; expedientesActivos: number }>();
+
+  cases.forEach((expediente) => {
+    const unitKey = normalizeLabel(expediente.tipo, "General");
+    const current = unitsAccumulator.get(unitKey) ?? { integrantes: new Set<string>(), expedientesActivos: 0 };
+    if ((expediente.estado ?? "").toLowerCase() === "activo") {
+      current.expedientesActivos += 1;
+    }
+    const creatorId = expediente.created_by ?? "";
+    if (creatorId && membersById.has(creatorId)) {
+      current.integrantes.add(creatorId);
+    }
+    unitsAccumulator.set(unitKey, current);
+  });
+
+  const unidades = [...unitsAccumulator.entries()]
+    .map(([unidad, data]) => ({
+      unidad,
+      integrantes: data.integrantes.size,
+      expedientesActivos: data.expedientesActivos,
+    }))
+    .sort((a, b) => b.expedientesActivos - a.expedientesActivos);
 
   return (
     <div className="space-y-6">
@@ -42,9 +141,9 @@ const DirectorioPage = () => {
             <CardDescription>Personas habilitadas para operar.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold tracking-tight">12</p>
+            <p className="text-3xl font-semibold tracking-tight">{members.length}</p>
             <p className="text-sm text-muted-foreground">
-              Ajustable cuando conectes datos reales de perfiles.
+              Basado en perfiles del despacho actualmente registrados.
             </p>
           </CardContent>
         </Card>
@@ -53,12 +152,16 @@ const DirectorioPage = () => {
           <CardHeader className="space-y-2 pb-2">
             <Building2 className="h-5 w-5 text-primary" />
             <CardTitle>Unidades</CardTitle>
-            <CardDescription>Distribución por área funcional.</CardDescription>
+            <CardDescription>Distribución real por tipo de expediente.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Badge variant="secondary">Litigios</Badge>
-            <Badge variant="secondary">Compliance</Badge>
-            <Badge variant="secondary">Contratos</Badge>
+            {unidades.length > 0 ? (
+              unidades.map((unidad) => (
+                <Badge key={unidad.unidad} variant="secondary">{unidad.unidad}</Badge>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">Sin expedientes cargados todavía.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -69,8 +172,8 @@ const DirectorioPage = () => {
             <CardDescription>Matriz base para gobierno de accesos.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold tracking-tight">3</p>
-            <p className="text-sm text-muted-foreground">Perfiles de acceso definidos</p>
+            <p className="text-3xl font-semibold tracking-tight">{roles.length}</p>
+            <p className="text-sm text-muted-foreground">Perfiles de acceso realmente asignados</p>
           </CardContent>
         </Card>
       </div>
@@ -90,13 +193,21 @@ const DirectorioPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {roles.map((role) => (
-                  <TableRow key={role.name}>
-                    <TableCell className="font-medium">{role.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{role.scope}</TableCell>
-                    <TableCell className="text-right">{role.users}</TableCell>
+                {roles.length > 0 ? (
+                  roles.map((role) => (
+                    <TableRow key={role.name}>
+                      <TableCell className="font-medium">{role.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{role.scope}</TableCell>
+                      <TableCell className="text-right">{role.users}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-sm text-muted-foreground">
+                      Sin roles asignados todavía en perfiles.
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -116,13 +227,21 @@ const DirectorioPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {unidades.map((unidad) => (
-                  <TableRow key={unidad.unidad}>
-                    <TableCell className="font-medium">{unidad.unidad}</TableCell>
-                    <TableCell>{unidad.integrantes}</TableCell>
-                    <TableCell className="text-right">{unidad.expedientesActivos}</TableCell>
+                {unidades.length > 0 ? (
+                  unidades.map((unidad) => (
+                    <TableRow key={unidad.unidad}>
+                      <TableCell className="font-medium">{unidad.unidad}</TableCell>
+                      <TableCell>{unidad.integrantes}</TableCell>
+                      <TableCell className="text-right">{unidad.expedientesActivos}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-sm text-muted-foreground">
+                      No hay capacidad operativa para mostrar porque aún no hay expedientes.
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>

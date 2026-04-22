@@ -52,6 +52,10 @@ const routeHeaderMap: Record<string, HeaderContent> = {
     title: "Configuración",
     description: "Ajustes de perfil, despacho y preferencias.",
   },
+  "/perfil": {
+    title: "Perfil",
+    description: "Actualiza tus datos personales y del despacho.",
+  },
 };
 
 const getHeaderContent = (pathname: string): HeaderContent => {
