@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { createMissionRun } from "@/app/(dashboard)/misiones/actions";
-import { Play } from "lucide-react";
+import { CheckCircle2, Play } from "lucide-react";
 
 type MissionRunWithMission = MissionRun & {
   missions: { title?: string | null; slug?: string | null } | null;
@@ -48,6 +48,9 @@ const MisionesPage = async () => {
     .order("created_at", { ascending: false })
     .limit(20);
   const runs = (runsData as MissionRunWithMission[] | null) ?? [];
+  const startedRuns = runs.length;
+  const hitlRuns = runs.filter((run) => run.current_step === "hitl_review").length;
+  const completedRuns = runs.filter((run) => run.status === "completed").length;
 
   return (
     <div className="space-y-8">
@@ -57,6 +60,29 @@ const MisionesPage = async () => {
           Progresión tipo 4X: extracción, HITL, planificación y revisión.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Progresión de entrenamiento</CardTitle>
+          <CardDescription>
+            Ruta sugerida: extracción, HITL, planificación y revisión final.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">Misiones iniciadas</p>
+            <p className="text-2xl font-semibold">{startedRuns}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">En paso HITL</p>
+            <p className="text-2xl font-semibold">{hitlRuns}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">Completadas</p>
+            <p className="text-2xl font-semibold">{completedRuns}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -105,7 +131,7 @@ const MisionesPage = async () => {
           </Table>
           {missions.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No hay misiones. Un administrador puede crear plantillas.
+              No hay misiones activas. Volvé a un expediente y generá contexto para habilitar nuevas prácticas.
             </p>
           )}
         </CardContent>
@@ -150,9 +176,28 @@ const MisionesPage = async () => {
           </Table>
           {runs.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Todavía no iniciaste ninguna misión.
+              Iniciá tu primera misión para desbloquear el paso de revisión HITL y sumar IUS.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Siguiente paso recomendado</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+            Si ya completaste extracción, abrí tu ejecución y cerrá la revisión HITL.
+          </p>
+          <p className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+            Después, consolidá el aprendizaje resolviendo un quiz temático.
+          </p>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/quizzes">Continuar en Quizzes IA</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

@@ -17,6 +17,7 @@ import {
   Trophy,
   BrainCircuit,
   Coins,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  helper?: string;
 };
 
 type NavGroup = {
@@ -36,23 +38,35 @@ type NavGroup = {
 };
 
 const upperGroup: NavGroup = {
-  label: "Operaciones",
+  label: "Core Operativo",
   items: [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/expedientes", label: "Expedientes", icon: FolderKanban },
-    { href: "/ingesta", label: "Ingesta de Datos", icon: UploadCloud },
     { href: "/validacion", label: "Validación (HITL)", icon: ShieldCheck },
-    { href: "/directorio", label: "Directorio", icon: Users },
+  ],
+};
+
+const automationGroup: NavGroup = {
+  label: "Producción IA",
+  items: [
+    { href: "/ingesta", label: "Ingesta de Datos", icon: UploadCloud },
     { href: "/agentes", label: "Flujos IA", icon: Zap },
+  ],
+};
+
+const learningGroup: NavGroup = {
+  label: "Formación y Progreso",
+  items: [
     { href: "/misiones", label: "Misiones Ius", icon: Trophy },
     { href: "/quizzes", label: "Quizzes IA", icon: BrainCircuit },
+    { href: "/academia", label: "Academia", icon: GraduationCap },
   ],
 };
 
 const lowerGroup: NavGroup = {
-  label: "Crecimiento",
+  label: "Soporte",
   items: [
-    { href: "/academia", label: "Academia Ulpianito", icon: GraduationCap },
+    { href: "/directorio", label: "Directorio", icon: Users },
     { href: "/ius", label: "Economía IUS", icon: Coins },
     { href: "/documentacion", label: "Documentación", icon: FileText },
   ],
@@ -105,7 +119,10 @@ const NavGroupSection = ({
                 : "text-muted-foreground group-hover:text-foreground"
             )}
           />
-          {item.label}
+          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span className="truncate">{item.label}</span>
+            {isActive ? <ChevronRight className="h-3.5 w-3.5 shrink-0" /> : null}
+          </span>
         </Link>
       );
     })}
@@ -136,6 +153,16 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         <div className="space-y-6">
           <NavGroupSection
             group={upperGroup}
+            pathname={pathname}
+            onNavigate={onNavigate}
+          />
+          <NavGroupSection
+            group={automationGroup}
+            pathname={pathname}
+            onNavigate={onNavigate}
+          />
+          <NavGroupSection
+            group={learningGroup}
             pathname={pathname}
             onNavigate={onNavigate}
           />

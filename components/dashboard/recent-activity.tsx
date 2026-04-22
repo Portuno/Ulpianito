@@ -1,39 +1,79 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText } from "lucide-react";
-import type { Documento } from "@/lib/types/database";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 type RecentActivityProps = {
-  documents: Pick<Documento, "id" | "nombre" | "created_at">[];
+  cases: {
+    id: string;
+    titulo: string;
+    estado: string;
+    updated_at: string;
+    owner: string;
+    dueDate: string | null;
+  }[];
 };
 
-export const RecentActivity = ({ documents }: RecentActivityProps) => {
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+export const RecentActivity = ({ cases }: RecentActivityProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Actividad reciente</CardTitle>
+        <CardTitle className="text-lg">Actividad operativa reciente</CardTitle>
       </CardHeader>
       <CardContent>
-        {documents.length === 0 ? (
+        {cases.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No hay documentos recientes
+            Todavía no hay casos activos para mostrar.
           </p>
         ) : (
-          <div className="space-y-4">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center gap-3">
-                <FileText
-                  className="h-4 w-4 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{doc.nombre}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(doc.created_at).toLocaleDateString("es-ES")}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Caso</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Último cambio</TableHead>
+                <TableHead>Responsable</TableHead>
+                <TableHead>Vence</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cases.map((expediente) => (
+                <TableRow key={expediente.id}>
+                  <TableCell className="font-medium">
+                    <Link href={`/expedientes/${expediente.id}`} className="hover:underline">
+                      {expediente.titulo}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{expediente.estado}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(expediente.updated_at)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {expediente.owner}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {expediente.dueDate ? formatDate(expediente.dueDate) : "Sin plazo"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>

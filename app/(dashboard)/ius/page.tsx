@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -7,9 +8,39 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, MapPin, Sparkles, TrendingUp } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { Coins, MapPin, Sparkles, TrendingUp, Trophy } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
-const IusPage = () => {
+const IusPage = async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const [{ data: wallet }, { data: ledger }] = await Promise.all([
+    supabase.from("ius_wallets").select("balance").eq("profile_id", user.id).maybeSingle(),
+    supabase
+      .from("ius_ledger")
+      .select("id, delta, reason, created_at")
+      .eq("profile_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
+
+  const balance = wallet?.balance ?? 0;
+  const currentLevel =
+    balance >= 150 ? "Estratega" : balance >= 80 ? "Analista" : "Amanuense";
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -23,6 +54,32 @@ const IusPage = () => {
           Derecho.
         </p>
       </div>
+
+      <Card>
+        <CardHeader className="space-y-2">
+          <Trophy className="h-5 w-5 text-primary" />
+          <CardTitle>Tu progreso actual</CardTitle>
+          <CardDescription>
+            Recompensa tangible por práctica, calidad y consistencia.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">Saldo IUS</p>
+            <p className="text-3xl font-semibold">{balance}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">Nivel actual</p>
+            <p className="text-xl font-semibold">{currentLevel}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">Próximo objetivo</p>
+            <p className="text-sm font-medium">
+              {balance >= 150 ? "Mantener consistencia semanal" : "Completar misión + quiz aprobado"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="space-y-2">
@@ -73,6 +130,46 @@ const IusPage = () => {
               <Link href="/misiones">Ir a Misiones Ius</Link>
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle>Movimientos recientes</CardTitle>
+          <CardDescription>
+            Cada acción premiada queda auditada en el ledger personal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Motivo</TableHead>
+                <TableHead className="text-right">Delta</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(ledger ?? []).map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(entry.created_at).toLocaleDateString("es-AR")}
+                  </TableCell>
+                  <TableCell>{entry.reason}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={entry.delta > 0 ? "default" : "secondary"}>
+                      {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {(ledger ?? []).length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Aún no hay movimientos. Completa un quiz o una misión para activar tu progreso.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

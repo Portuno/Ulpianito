@@ -1,18 +1,28 @@
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Building2, UserRoundCog } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const DirectorioPage = () => {
   const roles = [
-    { name: "Socio", scope: "Estrategia y aprobaciones finales" },
-    { name: "Asociado", scope: "Produccion juridica y supervision de IA" },
-    { name: "Paralegal", scope: "Carga documental y control operativo" },
+    { name: "Socio", scope: "Estrategia y aprobaciones finales", users: 2 },
+    { name: "Asociado", scope: "Producción jurídica y supervisión de IA", users: 4 },
+    { name: "Paralegal", scope: "Carga documental y control operativo", users: 6 },
+  ];
+
+  const unidades = [
+    { unidad: "Litigios", integrantes: 5, expedientesActivos: 14 },
+    { unidad: "Compliance", integrantes: 3, expedientesActivos: 8 },
+    { unidad: "Contratos", integrantes: 4, expedientesActivos: 9 },
   ];
 
   return (
@@ -26,10 +36,10 @@ const DirectorioPage = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="space-y-2">
+          <CardHeader className="space-y-2 pb-2">
             <Users className="h-5 w-5 text-primary" />
             <CardTitle>Equipo activo</CardTitle>
-            <CardDescription>Personas habilitadas en la plataforma.</CardDescription>
+            <CardDescription>Personas habilitadas para operar.</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold tracking-tight">12</p>
@@ -40,10 +50,10 @@ const DirectorioPage = () => {
         </Card>
 
         <Card>
-          <CardHeader className="space-y-2">
+          <CardHeader className="space-y-2 pb-2">
             <Building2 className="h-5 w-5 text-primary" />
             <CardTitle>Unidades</CardTitle>
-            <CardDescription>Distribucion por area funcional.</CardDescription>
+            <CardDescription>Distribución por área funcional.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Badge variant="secondary">Litigios</Badge>
@@ -53,18 +63,68 @@ const DirectorioPage = () => {
         </Card>
 
         <Card>
-          <CardHeader className="space-y-2">
+          <CardHeader className="space-y-2 pb-2">
             <UserRoundCog className="h-5 w-5 text-primary" />
             <CardTitle>Roles y permisos</CardTitle>
             <CardDescription>Matriz base para gobierno de accesos.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {roles.map((role) => (
-              <div key={role.name} className="rounded-md border p-2">
-                <p className="text-sm font-medium">{role.name}</p>
-                <p className="text-xs text-muted-foreground">{role.scope}</p>
-              </div>
-            ))}
+          <CardContent>
+            <p className="text-3xl font-semibold tracking-tight">3</p>
+            <p className="text-sm text-muted-foreground">Perfiles de acceso definidos</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Matriz de roles operativos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Responsabilidad</TableHead>
+                  <TableHead className="text-right">Usuarios</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {roles.map((role) => (
+                  <TableRow key={role.name}>
+                    <TableCell className="font-medium">{role.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{role.scope}</TableCell>
+                    <TableCell className="text-right">{role.users}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Capacidad por unidad</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Unidad</TableHead>
+                  <TableHead>Integrantes</TableHead>
+                  <TableHead className="text-right">Casos activos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {unidades.map((unidad) => (
+                  <TableRow key={unidad.unidad}>
+                    <TableCell className="font-medium">{unidad.unidad}</TableCell>
+                    <TableCell>{unidad.integrantes}</TableCell>
+                    <TableCell className="text-right">{unidad.expedientesActivos}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
